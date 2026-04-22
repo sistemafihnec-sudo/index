@@ -10,14 +10,19 @@
 <p id="info"></p>
 
 <script>
-  const rol = localStorage.getItem("rol");
-  const sede = localStorage.getItem("sede");
+const rol = localStorage.getItem("rol");
 
-  console.log("ROL:", rol);
-  console.log("SEDE:", sede);
+if (!rol) {
+  window.location.href = "index.html";
+}
 
-  document.getElementById("info").innerText =
-    "Rol: " + rol + " | Sede: " + sede;
+if (rol === "admin") {
+  document.body.innerHTML += "<h2>Panel Administrador</h2>";
+} else if (rol === "tesorero") {
+  document.body.innerHTML += "<h2>Panel Tesorero</h2>";
+} else if (rol === "secretario") {
+  document.body.innerHTML += "<h2>Panel Secretario</h2>";
+}
 </script>
 
 </body>
