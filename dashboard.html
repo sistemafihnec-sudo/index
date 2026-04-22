@@ -1,2 +1,10 @@
-<h1>Panel del sistema</h1>
-<p id="usuario"></p>
+<h1>Dashboard</h1>
+<p id="info"></p>
+
+<script>
+  const rol = localStorage.getItem("rol");
+  const sede = localStorage.getItem("sede");
+
+  document.getElementById("info").innerText =
+    "Rol: " + rol + " | Sede: " + sede;
+</script>
