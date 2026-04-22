@@ -10,13 +10,14 @@
 <p id="info"></p>
 
 <script>
+  const rol = localStorage.getItem("rol");
+  const sede = localStorage.getItem("sede");
 
-const rol = localStorage.getItem("rol");
-const sede = localStorage.getItem("sede");
+  console.log("ROL:", rol);
+  console.log("SEDE:", sede);
 
-document.getElementById("info").innerText =
-  "Rol: " + tesorero + " | Sede: " + siuna;
-
+  document.getElementById("info").innerText =
+    "Rol: " + rol + " | Sede: " + sede;
 </script>
 
 </body>
