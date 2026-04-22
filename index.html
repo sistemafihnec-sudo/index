@@ -35,10 +35,9 @@
     const password = document.getElementById("password").value;
 
     signInWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        document.getElementById("mensaje").innerText = "Bienvenido 🚀";
-        console.log(userCredential.user);
-      })
+    .then((userCredential) => {
+  window.location.href = "dashboard.html";
+})
       .catch((error) => {
         document.getElementById("mensaje").innerText = "Error: " + error.message;
       });
