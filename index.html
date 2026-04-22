@@ -15,10 +15,13 @@
 <p id="mensaje"></p>
 
 <script type="module">
-import { getFirestore, doc, getDoc } 
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  const firebaseConfig = {
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// 🔑 PEGA AQUÍ TU CONFIG REAL
+const firebaseConfig = {
     apiKey: "AIzaSyB1SeqgsMF6qFSEm8M4rlF9QeBP2F2HP4Q",
     authDomain: "sistema2026-fihnec.firebaseapp.com",
     projectId: "sistema2026-fihnec",
@@ -27,21 +30,64 @@ from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     appId: "1:224197914255:web:4d769cfc15286d894d0afa"
   };
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-  window.login = function() {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
+// 🔐 LOGIN
+window.login = async function() {
 
-    signInWithEmailAndPassword(auth, email, password)
-    .then((userCredential) => {
-  window.location.href = "dashboard.html";
-})
-      .catch((error) => {
-        document.getElementById("mensaje").innerText = "Error: " + error.message;
-      });
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  try {
+
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    console.log("Email login:", user.email);
+
+    // 🔎 BUSCAR EN FIRESTORE
+    const ref = doc(db, "usuarios", user.email);
+    const snap = await getDoc(ref);
+
+    if (snap.exists()) {
+
+      console.log("SI existe usuario");
+
+      const data = snap.data();
+
+      console.log("Datos:", data);
+
+      // 💾 GUARDAR EN LOCAL
+      localStorage.setItem("rol", data.rol);
+      localStorage.setItem("sede", data.sedeId);
+
+      document.getElementById("mensaje").innerText = "Bienvenido 🚀";
+
+      // 🚀 REDIRECCIÓN
+      setTimeout(() => {
+        window.location.href = "dashboard.html";
+      }, 1000);
+
+    } else {
+
+      console.log("NO existe usuario en Firestore");
+
+      document.getElementById("mensaje").innerText =
+        "Usuario no registrado en base de datos";
+
+    }
+
+  } catch (error) {
+
+    console.error(error);
+
+    document.getElementById("mensaje").innerText =
+      "Error: " + error.message;
   }
+};
+
 </script>
 
 </body>
