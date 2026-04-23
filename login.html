@@ -1,23 +1,46 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login FIHNEC</title>
 <link rel="stylesheet" href="style.css">
+
+<style>
+input{
+  padding:10px;
+  margin:5px;
+  width:80%;
+}
+
+.opciones button{
+  margin:5px;
+}
+</style>
+
 </head>
+
 <body>
 
-<h2>INICIAR SESIÓN</h2>
+<h2>FIHNEC - ACCESO</h2>
 
-<input type="email" id="email" placeholder="Correo"><br><br>
-<input type="password" id="password" placeholder="Contraseña"><br><br>
+<input type="email" id="email" placeholder="Correo"><br>
+<input type="password" id="password" placeholder="Contraseña"><br>
 
-<button onclick="login()" class="btn">Ingresar</button>
-<button onclick="registro()" class="btn">Registrarse</button>
+<div class="opciones">
+  <button onclick="login()" class="btn">Ingresar</button>
+  <button onclick="registro()" class="btn">Registrarse</button>
+  <button onclick="recuperar()" class="btn">Recuperar Contraseña</button>
+</div>
+
+<p id="mensaje"></p>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+// 🔥 TU CONFIG FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyB1SeqgsMF6qFSEm8M4rlF9QeBP2F2HP4Q",
   authDomain: "sistema2026-fihnec.firebaseapp.com",
@@ -27,21 +50,50 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
+// 🔐 LOGIN
 window.login = async () => {
-  let email = document.getElementById("email").value;
-  let password = document.getElementById("password").value;
+  try{
+    let email = document.getElementById("email").value;
+    let password = document.getElementById("password").value;
 
-  await signInWithEmailAndPassword(auth, email, password);
-  window.location.href = "index.html";
+    await signInWithEmailAndPassword(auth, email, password);
+
+    window.location.href = "index.html";
+
+  }catch(e){
+    document.getElementById("mensaje").innerText = "Error: " + e.message;
+  }
 };
 
+// 🆕 REGISTRO
 window.registro = async () => {
-  let email = document.getElementById("email").value;
-  let password = document.getElementById("password").value;
+  try{
+    let email = document.getElementById("email").value;
+    let password = document.getElementById("password").value;
 
-  await createUserWithEmailAndPassword(auth, email, password);
-  alert("Usuario creado");
+    await createUserWithEmailAndPassword(auth, email, password);
+
+    document.getElementById("mensaje").innerText = "Usuario creado correctamente";
+
+  }catch(e){
+    document.getElementById("mensaje").innerText = "Error: " + e.message;
+  }
 };
+
+// 🔑 RECUPERAR CONTRASEÑA
+window.recuperar = async () => {
+  try{
+    let email = document.getElementById("email").value;
+
+    await sendPasswordResetEmail(auth, email);
+
+    document.getElementById("mensaje").innerText = "Correo de recuperación enviado";
+
+  }catch(e){
+    document.getElementById("mensaje").innerText = "Error: " + e.message;
+  }
+};
+
 </script>
 
 </body>
