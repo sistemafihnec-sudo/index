@@ -16,11 +16,13 @@
 <tr><th>Fecha</th><th>Visitas</th><th>Miembros</th><th>Invitados</th><th>Asistencia</th></tr>
 </table>
 
-<script type="module">
-import "./app.js";
+<script type="module" src="app.js"></script>
 
-cargarTesoreria();
-cargarSecretaria();
+<script>
+window.onload = () => {
+  if (typeof cargarTesoreria === "function") cargarTesoreria();
+  if (typeof cargarSecretaria === "function") cargarSecretaria();
+};
 </script>
 
 </body>
