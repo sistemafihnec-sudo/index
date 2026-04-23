@@ -1,44 +1,32 @@
 body{
   margin:0;
   font-family: Arial;
-  background: linear-gradient(to bottom, #8B0000, #000);
+  background: linear-gradient(#8B0000, #000);
   color:white;
   text-align:center;
 }
 
-.container{
-  padding:20px;
-}
-
 .logo{
-  width:200px;
+  width:180px;
   margin-top:20px;
-}
-
-h1{
-  color:gold;
 }
 
 .btn{
   display:block;
   background:gold;
   color:black;
+  margin:10px;
   padding:15px;
-  margin:15px;
   text-decoration:none;
-  font-weight:bold;
   border-radius:10px;
-}
-
-.btn:hover{
-  background:#ffd700;
+  font-weight:bold;
 }
 
 table{
   width:100%;
-  border-collapse: collapse;
   background:white;
   color:black;
+  border-collapse: collapse;
 }
 
 td, th{
@@ -48,10 +36,4 @@ td, th{
 
 input{
   width:100%;
-  border:none;
-}
-
-.total{
-  background:#f2f2f2;
-  font-weight:bold;
 }
