@@ -75,13 +75,44 @@ window.registro = async () => {
     let email = document.getElementById("email").value;
     let password = document.getElementById("password").value;
 
-    await createUserWithEmailAndPassword(auth, email, password);
+    let codigo = document.getElementById("codigo").value.toUpperCase();
+    let nombre = document.getElementById("nombreCapitulo").value;
+    let ciudad = document.getElementById("ciudad").value;
+    let local = document.getElementById("local").value;
+    let rol = document.getElementById("rol").value;
 
-    document.getElementById("mensaje").innerText = "Usuario creado correctamente";
+    if(!email || !password || !codigo || !nombre || !ciudad || !local){
+      document.getElementById("mensaje").innerText = "Completa todos los campos";
+      return;
+    }
+
+    const sedeRef = doc(db, "sedes", codigo);
+    const sedeSnap = await getDoc(sedeRef);
+
+    if(!sedeSnap.exists()){
+      await setDoc(sedeRef, {
+        nombre: nombre,
+        ciudad: ciudad,
+        local: local,
+        codigo: codigo
+      });
+    }
+
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    await setDoc(doc(db, "usuarios", user.uid), {
+      email: email,
+      rol: rol,
+      codigoCapitulo: codigo
+    });
+
+    document.getElementById("mensaje").innerText = "Registro completo";
 
   }catch(e){
-    document.getElementById("mensaje").innerText = "Error: " + e.message;
+    document.getElementById("mensaje").innerText = e.message;
   }
+};
 };
 
 // 🔑 RECUPERAR CONTRASEÑA
