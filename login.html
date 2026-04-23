@@ -1,44 +1,3 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login FIHNEC</title>
-<link rel="stylesheet" href="style.css">
-
-<style>
-input{
-  padding:10px;
-  margin:5px;
-  width:80%;
-}
-
-.opciones button{
-  margin:5px;
-}
-</style>
-
-</head>
-
-<body>
-
-<h2>FIHNEC - ACCESO</h2>
-
-<input type="email" id="email" placeholder="Correo"><br>
-<input type="password" id="password" placeholder="Contraseña"><br>
-<input type="text" id="codigo" placeholder="Código de Capítulo"><br>
-<input type="text" id="nombreCapitulo" placeholder="Nombre del Capítulo"><br>
-<input type="text" id="ciudad" placeholder="Ciudad"><br>
-<input type="text" id="local" placeholder="Local"><br>
-
-<div class="opciones">
-  <button onclick="login()" class="btn">Ingresar</button>
-  <button onclick="registro()" class="btn">Registrarse</button>
-  <button onclick="recuperar()" class="btn">Recuperar Contraseña</button>
-</div>
-
-<p id="mensaje"></p>
-
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -46,7 +5,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { 
   getAuth, 
   signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword 
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 import { 
@@ -56,7 +16,7 @@ import {
   getDoc 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// 🔥 TU CONFIG FIREBASE
+// 🔥 CONFIG FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyB1SeqgsMF6qFSEm8M4rlF9QeBP2F2HP4Q",
   authDomain: "sistema2026-fihnec.firebaseapp.com",
@@ -78,7 +38,7 @@ window.login = async () => {
     window.location.href = "index.html";
 
   }catch(e){
-    document.getElementById("mensaje").innerText = "Error: " + e.message;
+    document.getElementById("mensaje").innerText = e.message;
   }
 };
 
@@ -92,13 +52,13 @@ window.registro = async () => {
     let nombre = document.getElementById("nombreCapitulo").value;
     let ciudad = document.getElementById("ciudad").value;
     let local = document.getElementById("local").value;
-    let rol = document.getElementById("rol").value;
 
     if(!email || !password || !codigo || !nombre || !ciudad || !local){
       document.getElementById("mensaje").innerText = "Completa todos los campos";
       return;
     }
 
+    // 🔥 Crear sede si no existe
     const sedeRef = doc(db, "sedes", codigo);
     const sedeSnap = await getDoc(sedeRef);
 
@@ -111,12 +71,13 @@ window.registro = async () => {
       });
     }
 
+    // 🔥 Crear usuario
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
     await setDoc(doc(db, "usuarios", user.uid), {
       email: email,
-      rol: rol,
+      rol: "tesorero",
       codigoCapitulo: codigo
     });
 
@@ -126,7 +87,6 @@ window.registro = async () => {
     document.getElementById("mensaje").innerText = e.message;
   }
 };
-};
 
 // 🔑 RECUPERAR CONTRASEÑA
 window.recuperar = async () => {
@@ -135,14 +95,11 @@ window.recuperar = async () => {
 
     await sendPasswordResetEmail(auth, email);
 
-    document.getElementById("mensaje").innerText = "Correo de recuperación enviado";
+    document.getElementById("mensaje").innerText = "Correo enviado";
 
   }catch(e){
-    document.getElementById("mensaje").innerText = "Error: " + e.message;
+    document.getElementById("mensaje").innerText = e.message;
   }
 };
 
 </script>
-
-</body>
-</html>
