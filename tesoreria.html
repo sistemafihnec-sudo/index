@@ -59,7 +59,11 @@ auth.onAuthStateChanged(async (user) => {
     codigoUsuario = data.codigoCapitulo;
 
     console.log("Mi código:", codigoUsuario);
-
+db.collection("tesoreria").add({
+  codigoCapitulo: codigoUsuario,
+  saldoInicial: 100,
+  fecha: new Date()
+});
   }else{
     window.location.href = "login.html";
   }
@@ -67,5 +71,6 @@ auth.onAuthStateChanged(async (user) => {
 });
 
 </script>
+
 </body>
 </html>
