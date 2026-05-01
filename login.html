@@ -6,32 +6,35 @@
 </head>
 
 <body>
+<div class="app">
 
-<h2>FIHNEC - ACCESO</h2>
+  <h2 class="titulo">FIHNEC</h2>
+  <p class="sub">Sistema Administrativo</p>
 
-<!-- CAMPOS COMUNES -->
-<input id="email" placeholder="Correo"><br>
-<input id="password" placeholder="Contraseña"><br>
+  <div class="card">
 
-<!-- CAMPOS DE REGISTRO -->
-<div id="camposRegistro" style="display:none;">
-  <input id="codigo" placeholder="Código de Capítulo"><br>
-  <input id="nombre" placeholder="Nombre del Capítulo"><br>
-  <input id="ciudad" placeholder="Ciudad"><br>
-  <input id="local" placeholder="Local"><br>
+    <input id="email" placeholder="Correo">
+    <input id="password" placeholder="Contraseña">
+
+    <div id="camposRegistro" style="display:none;">
+      <input id="codigo" placeholder="Código de Capítulo">
+      <input id="nombre" placeholder="Nombre del Capítulo">
+      <input id="ciudad" placeholder="Ciudad">
+      <input id="local" placeholder="Local">
+    </div>
+
+    <button id="btnAccion" onclick="login()">Ingresar</button>
+
+    <div class="links">
+      <span onclick="modoRegistro()">Crear cuenta</span>
+      <span onclick="modoLogin()">Ya tengo cuenta</span>
+    </div>
+
+    <p id="msg"></p>
+
+  </div>
+
 </div>
-
-<!-- BOTÓN PRINCIPAL -->
-<button id="btnAccion" onclick="login()">Ingresar</button>
-
-<!-- CAMBIO DE MODO -->
-<p>
-  <a href="#" onclick="modoRegistro()">Crear cuenta</a> |
-  <a href="#" onclick="modoLogin()">Ya tengo cuenta</a>
-</p>
-
-<p id="msg"></p>
-
 <!-- Firebase COMPAT -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
