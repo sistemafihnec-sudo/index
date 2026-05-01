@@ -59,16 +59,37 @@ auth.onAuthStateChanged(async (user) => {
     codigoUsuario = data.codigoCapitulo;
 
     console.log("Mi código:", codigoUsuario);
-db.collection("tesoreria").add({
-  codigoCapitulo: codigoUsuario,
-  saldoInicial: 100,
-  fecha: new Date()
-});
   }else{
     window.location.href = "login.html";
   }
 
 });
+
+</script>
+<script>
+
+let codigoUsuario = "";
+
+auth.onAuthStateChanged(async (user) => {
+
+  if(user){
+    const docUser = await db.collection("usuarios").doc(user.uid).get();
+    codigoUsuario = docUser.data().codigoCapitulo;
+  }
+
+});
+
+function guardar(){
+
+  db.collection("tesoreria").add({
+    codigoCapitulo: codigoUsuario,
+    saldoInicial: 100,
+    fecha: new Date()
+  });
+
+  alert("Guardado correctamente");
+
+}
 
 </script>
 
