@@ -33,6 +33,73 @@ window.onload = () => {
   if (typeof cargarSecretaria === "function") cargarSecretaria();
 };
 </script>
+<body>
+
+  <h2>Reportes de Tesorería</h2>
+
+  <table border="1" width="100%">
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Saldo Inicial</th>
+        <th>Ingresos</th>
+        <th>Egresos</th>
+        <th>Saldo Final</th>
+      </tr>
+    </thead>
+    <tbody id="tablaDatos"></tbody>
+  </table>
+
+  <!-- 🔥 AQUÍ VA EL SCRIPT -->
+  <script>
+
+  let codigoUsuario = "";
+
+  auth.onAuthStateChanged(async (user) => {
+
+    if(user){
+
+      const docUser = await db.collection("usuarios").doc(user.uid).get();
+      codigoUsuario = docUser.data().codigoCapitulo;
+
+      cargarDatos();
+
+    }else{
+      window.location.href = "login.html";
+    }
+
+  });
+
+  async function cargarDatos(){
+
+    const tabla = document.getElementById("tablaDatos");
+    tabla.innerHTML = "";
+
+    const snapshot = await db.collection("tesoreria")
+      .where("codigoCapitulo", "==", codigoUsuario)
+      .get();
+
+    snapshot.forEach(doc => {
+
+      const d = doc.data();
+
+      tabla.innerHTML += `
+        <tr>
+          <td>${new Date(d.fecha.seconds * 1000).toLocaleDateString()}</td>
+          <td>${d.saldoInicial || 0}</td>
+          <td>${d.totalIngresos || 0}</td>
+          <td>${d.totalEgresos || 0}</td>
+          <td>${d.saldoFinal || 0}</td>
+        </tr>
+      `;
+
+    });
+
+  }
+
+  </script>
+
+</body>
 
 </body>
 </html>
