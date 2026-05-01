@@ -34,5 +34,38 @@
 <button class="btn" onclick="guardarTesoreria()">Guardar</button>
 
 <script type="module" src="app.js"></script>
+<script>
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB1SeqgsMF6qFSEm8M4rlF9QeBP2F2HP4Q",
+  authDomain: "sistema2026-fihnec.firebaseapp.com",
+  projectId: "sistema2026-fihnec"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let codigoUsuario = "";
+
+auth.onAuthStateChanged(async (user) => {
+
+  if(user){
+
+    const docUser = await db.collection("usuarios").doc(user.uid).get();
+    const data = docUser.data();
+
+    codigoUsuario = data.codigoCapitulo;
+
+    console.log("Mi código:", codigoUsuario);
+
+  }else{
+    window.location.href = "login.html";
+  }
+
+});
+
+</script>
 </body>
 </html>
