@@ -10,6 +10,8 @@
 <body>
 <div class="app">
 
+  <img src="logo.png" class="logo">
+
   <h2 class="titulo">FIHNEC</h2>
   <p class="sub">Sistema Administrativo</p>
 
@@ -19,13 +21,13 @@
     <input id="password" placeholder="Contraseña">
 
     <div id="camposRegistro" style="display:none;">
-      <input id="codigo" placeholder="Código de Capítulo">
-      <input id="nombre" placeholder="Nombre del Capítulo">
+      <input id="codigo" placeholder="Código">
+      <input id="nombre" placeholder="Nombre">
       <input id="ciudad" placeholder="Ciudad">
       <input id="local" placeholder="Local">
     </div>
 
-    <button id="btnAccion" onclick="login()">Ingresar</button>
+    <button id="btnAccion">Ingresar</button>
 
     <div class="links">
       <span onclick="modoRegistro()">Crear cuenta</span>
@@ -36,8 +38,7 @@
 
   </div>
 
-</div>
-<!-- Firebase COMPAT -->
+</div><!-- Firebase COMPAT -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
