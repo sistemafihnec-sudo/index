@@ -1,5 +1,16 @@
 body{
 body{
+button{
+  width:100%;
+  padding:12px;
+  background:gold;
+  border:none;
+  border-radius:10px;
+  font-weight:bold;
+  cursor:pointer;
+  font-size:16px;
+}
+  
   margin:0;
   font-family: Arial, sans-serif;
   background: linear-gradient(135deg, #8B0000, #000);
