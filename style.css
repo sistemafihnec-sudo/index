@@ -1,4 +1,8 @@
 body{
+  .logo{
+  width:100px;
+  margin-bottom:10px;
+}
 button{
   width:100%;
   padding:12px;
