@@ -4,10 +4,37 @@ body{
   background: linear-gradient(135deg, #8B0000, #000);
   color:white;
 
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
+  body{
+  margin:0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #8B0000, #000);
+  color:white;
+}
+
+/* CONTENEDOR */
+.app{
+  width:100%;
+  max-width:350px;
+  margin:auto;
+  padding:40px 20px;
+  text-align:center;
+}
+
+/* 📱 AJUSTE PARA CELULAR */
+@media (max-width: 600px){
+
+  .app{
+    padding-top:80px; /* baja contenido */
+  }
+
+  .logo{
+    width:80px;
+  }
+
+  .card{
+    margin-top:20px;
+  }
+
 }
 
 /* CONTENEDOR PRINCIPAL */
