@@ -2,19 +2,105 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>PRUEBA</title>
+<title>FIHNEC - Login</title>
 </head>
 
 <body>
 
-<h1>FUNCIONA</h1>
+<h2>FIHNEC - ACCESO</h2>
 
-<button onclick="test()">Click</button>
+<input id="email" placeholder="Correo"><br>
+<input id="password" placeholder="Contraseña"><br>
+
+<input id="codigo" placeholder="Código de Capítulo"><br>
+<input id="nombre" placeholder="Nombre del Capítulo"><br>
+<input id="ciudad" placeholder="Ciudad"><br>
+<input id="local" placeholder="Local"><br>
+
+<button onclick="registro()">Registrarse</button>
+<button onclick="login()">Ingresar</button>
+<button onclick="recuperar()">Recuperar</button>
+
+<p id="msg"></p>
+
+<!-- Firebase COMPAT -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
-function test(){
-  alert("Todo bien");
+
+// CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSyB1SeqgsMF6qFSEm8M4rlF9QeBP2F2HP4Q",
+  authDomain: "sistema2026-fihnec.firebaseapp.com",
+  projectId: "sistema2026-fihnec"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// REGISTRO
+function registro(){
+
+  let email = document.getElementById("email").value;
+  let password = document.getElementById("password").value;
+
+  let codigo = document.getElementById("codigo").value.toUpperCase();
+  let nombre = document.getElementById("nombre").value;
+  let ciudad = document.getElementById("ciudad").value;
+  let local = document.getElementById("local").value;
+
+  if(!email || !password || !codigo || !nombre || !ciudad || !local){
+    msg.innerText = "Completa todos los campos";
+    return;
+  }
+
+  auth.createUserWithEmailAndPassword(email, password)
+  .then(user => {
+
+    db.collection("sedes").doc(codigo).set({
+      nombre,
+      ciudad,
+      local
+    });
+
+    db.collection("usuarios").doc(user.user.uid).set({
+      email,
+      codigoCapitulo: codigo,
+      rol: "tesorero"
+    });
+
+    msg.innerText = "Registro completo";
+
+  })
+  .catch(e => msg.innerText = e.message);
 }
+
+// LOGIN
+function login(){
+
+  let email = document.getElementById("email").value;
+  let password = document.getElementById("password").value;
+
+  auth.signInWithEmailAndPassword(email, password)
+  .then(() => {
+    window.location.href = "index.html";
+  })
+  .catch(e => msg.innerText = e.message);
+}
+
+// RECUPERAR
+function recuperar(){
+  let email = document.getElementById("email").value;
+
+  auth.sendPasswordResetEmail(email)
+  .then(() => msg.innerText = "Correo enviado")
+  .catch(e => msg.innerText = e.message);
+}
+
 </script>
 
 </body>
