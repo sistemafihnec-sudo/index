@@ -116,6 +116,24 @@ function modoRegistro(){
 function modoLogin(){
   document.getElementById("camposRegistro").style.display = "none";
 }
+  function modoRegistro(){
+  document.getElementById("camposRegistro").style.display = "block";
+
+  // cambia botón principal
+  document.getElementById("btnAccion").innerText = "Registrar";
+  document.getElementById("btnAccion").onclick = registro;
+}
+
+function modoLogin(){
+  document.getElementById("camposRegistro").style.display = "none";
+
+  // cambia botón principal
+  document.getElementById("btnAccion").innerText = "Ingresar";
+  document.getElementById("btnAccion").onclick = login;
+}
+
+// iniciar en login
+window.onload = modoLogin;
 </script>
 
 </body>
