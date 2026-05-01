@@ -1,4 +1,34 @@
 body{
+  .grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px;
+  margin-top:20px;
+}
+
+.card-btn{
+  background:white;
+  color:black;
+  padding:20px;
+  border-radius:15px;
+  text-align:center;
+  font-weight:bold;
+  cursor:pointer;
+  box-shadow:0 5px 15px rgba(0,0,0,0.2);
+  transition:0.2s;
+}
+
+.card-btn:hover{
+  transform:scale(1.05);
+  background:gold;
+}
+
+/* móvil */
+@media (max-width:600px){
+  .grid{
+    grid-template-columns:1fr;
+  }
+}
   margin:0;
   font-family: Arial, sans-serif;
   background: linear-gradient(135deg, #8B0000, #000);
