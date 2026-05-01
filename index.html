@@ -28,14 +28,31 @@ onAuthStateChanged(auth, (user) => {
 
 <body>
 
-<div class="container">
-  <img src="logo.png" class="logo">
-  <h1>FIHNEC</h1>
-  <p>Sistema Administrativo</p>
+<div class="app">
 
-  <a href="tesoreria.html" class="btn">TESORERÍA</a>
-  <a href="secretaria.html" class="btn">SECRETARÍA</a>
-  <a href="reportes.html" class="btn">VER REPORTES</a>
+  <img src="logo.png" class="logo">
+
+  <h2>Bienvenido</h2>
+  <p id="infoUsuario"></p>
+
+  <div class="grid">
+
+    <div class="card-btn" onclick="irTesoreria()">
+      💰<br>TESORERÍA
+    </div>
+
+    <div class="card-btn" onclick="irSecretaria()">
+      📋<br>SECRETARÍA
+    </div>
+
+    <div class="card-btn" onclick="verReportes()">
+      📊<br>REPORTES
+    </div>
+
+  </div>
+
+  <button onclick="logout()">Cerrar sesión</button>
+
 </div>
 
 </body>
