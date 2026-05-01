@@ -1,4 +1,84 @@
 body{
+body{
+  margin:0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #8B0000, #000);
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+
+.app{
+  width:100%;
+  max-width:350px;
+  text-align:center;
+}
+
+.titulo{
+  color:gold;
+  margin-bottom:5px;
+}
+
+.sub{
+  font-size:14px;
+  opacity:0.8;
+  margin-bottom:20px;
+}
+
+.card{
+  background:white;
+  color:black;
+  padding:20px;
+  border-radius:15px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.3);
+}
+
+input{
+  width:100%;
+  padding:12px;
+  margin:8px 0;
+  border:none;
+  border-radius:8px;
+  background:#f2f2f2;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  background:gold;
+  border:none;
+  border-radius:10px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:hover{
+  background:#ffd700;
+}
+
+.links{
+  margin-top:10px;
+  font-size:13px;
+}
+
+.links span{
+  cursor:pointer;
+  color:#8B0000;
+  margin:0 5px;
+}
+
+.links span:hover{
+  text-decoration:underline;
+}
+
+#msg{
+  margin-top:10px;
+  font-size:13px;
+  color:red;
+}
+  
   margin:0;
   font-family: Arial;
   background: linear-gradient(#8B0000, #000);
