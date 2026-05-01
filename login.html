@@ -9,22 +9,26 @@
 
 <h2>FIHNEC - ACCESO</h2>
 
+<!-- CAMPOS COMUNES -->
 <input id="email" placeholder="Correo"><br>
 <input id="password" placeholder="Contraseña"><br>
 
+<!-- CAMPOS DE REGISTRO -->
 <div id="camposRegistro" style="display:none;">
-
-<input id="codigo" placeholder="Código de Capítulo"><br>
-<input id="nombre" placeholder="Nombre del Capítulo"><br>
-<input id="ciudad" placeholder="Ciudad"><br>
-<input id="local" placeholder="Local"><br>
-<button onclick="registro()">Guardar Registro</button>
-
+  <input id="codigo" placeholder="Código de Capítulo"><br>
+  <input id="nombre" placeholder="Nombre del Capítulo"><br>
+  <input id="ciudad" placeholder="Ciudad"><br>
+  <input id="local" placeholder="Local"><br>
 </div>
 
-<button onclick="modoLogin()">Modo Login</button>
-<button onclick="modoRegistro()">Ir a Registro</button>
-<button onclick="recuperar()">Recuperar</button>
+<!-- BOTÓN PRINCIPAL -->
+<button id="btnAccion" onclick="login()">Ingresar</button>
+
+<!-- CAMBIO DE MODO -->
+<p>
+  <a href="#" onclick="modoRegistro()">Crear cuenta</a> |
+  <a href="#" onclick="modoLogin()">Ya tengo cuenta</a>
+</p>
 
 <p id="msg"></p>
 
