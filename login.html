@@ -1,84 +1,21 @@
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>PRUEBA</title>
+</head>
+
+<body>
+
+<h1>FUNCIONA</h1>
+
+<button onclick="test()">Click</button>
 
 <script>
-
-// CONFIG
-const firebaseConfig = {
-  apiKey: "AIzaSyB1SeqgsMF6qFSEm8M4rlF9QeBP2F2HP4Q",
-  authDomain: "sistema2026-fihnec.firebaseapp.com",
-  projectId: "sistema2026-fihnec",
-};
-
-firebase.initializeApp(firebaseConfig);
-
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-// LOGIN
-function login(){
-  let email = document.getElementById("email").value;
-  let password = document.getElementById("password").value;
-
-  auth.signInWithEmailAndPassword(email, password)
-    .then(() => {
-      window.location.href = "index.html";
-    })
-    .catch(e => {
-      document.getElementById("mensaje").innerText = e.message;
-    });
+function test(){
+  alert("Todo bien");
 }
-
-// REGISTRO
-function registro(){
-  let email = document.getElementById("email").value;
-  let password = document.getElementById("password").value;
-
-  let codigo = document.getElementById("codigo").value.toUpperCase();
-  let nombre = document.getElementById("nombreCapitulo").value;
-  let ciudad = document.getElementById("ciudad").value;
-  let local = document.getElementById("local").value;
-
-  if(!email || !password || !codigo || !nombre || !ciudad || !local){
-    document.getElementById("mensaje").innerText = "Completa todos los campos";
-    return;
-  }
-
-  auth.createUserWithEmailAndPassword(email, password)
-    .then(userCredential => {
-
-      db.collection("sedes").doc(codigo).set({
-        nombre: nombre,
-        ciudad: ciudad,
-        local: local
-      });
-
-      db.collection("usuarios").doc(userCredential.user.uid).set({
-        email: email,
-        codigoCapitulo: codigo,
-        rol: "tesorero"
-      });
-
-      document.getElementById("mensaje").innerText = "Registro completo";
-    })
-    .catch(e => {
-      document.getElementById("mensaje").innerText = e.message;
-    });
-}
-
-// RECUPERAR
-function recuperar(){
-  let email = document.getElementById("email").value;
-
-  auth.sendPasswordResetEmail(email)
-    .then(() => {
-      document.getElementById("mensaje").innerText = "Correo enviado";
-    })
-    .catch(e => {
-      document.getElementById("mensaje").innerText = e.message;
-    });
-}
-
 </script>
+
+</body>
+</html>
