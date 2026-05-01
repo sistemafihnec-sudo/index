@@ -10,23 +10,23 @@
 <button onclick="nuevoEvento()">Nuevo Evento</button>
 
 <table>
-<tr><td>Saldo Inicial</td><td><input id="saldoInicial" oninput="calcular()"></td></tr>
+<input type="number" id="saldoInicial" placeholder="Saldo inicial">
 
 <tr><th colspan="2">Ingresos</th></tr>
-<tr><td>Servicios</td><td><input id="i1" oninput="calcular()"></td></tr>
-<tr><td>Ofrendas</td><td><input id="i2" oninput="calcular()"></td></tr>
-<tr><td>Diezmos</td><td><input id="i3" oninput="calcular()"></td></tr>
-<tr><td>Otros</td><td><input id="i4" oninput="calcular()"></td></tr>
+<tr><td>Servicios Vendidos</td><td><input id="i1" oninput="calcular()"></td></tr>
+<tr><td>Ofrendas/Sobres</td><td><input id="i2" oninput="calcular()"></td></tr>
+<tr><td>Diezmos/Miembros</td><td><input id="i3" oninput="calcular()"></td></tr>
+<tr><td>Otros Ingresos</td><td><input id="i4" oninput="calcular()"></td></tr>
 
 <tr><td>Total</td><td id="totalI"></td></tr>
 <tr><td>Disponible</td><td id="totalD"></td></tr>
 
 <tr><th colspan="2">Egresos</th></tr>
-<tr><td>Diezmo</td><td><input id="e1" oninput="calcular()"></td></tr>
-<tr><td>Testimonio</td><td><input id="e2" oninput="calcular()"></td></tr>
+<tr><td>Diezmo Oficina Nacional</td><td><input id="e1" oninput="calcular()"></td></tr>
+<tr><td>Ofrenda al Testimonio</td><td><input id="e2" oninput="calcular()"></td></tr>
 <tr><td>Factura</td><td><input id="e3" oninput="calcular()"></td></tr>
-<tr><td>Becas</td><td><input id="e4" oninput="calcular()"></td></tr>
-<tr><td>Otros</td><td><input id="e5" oninput="calcular()"></td></tr>
+<tr><td>Medias Becas</td><td><input id="e4" oninput="calcular()"></td></tr>
+<tr><td>Otros Gastos</td><td><input id="e5" oninput="calcular()"></td></tr>
 
 <tr><td>Total</td><td id="totalE"></td></tr>
 <tr><td>Final</td><td id="saldoF"></td></tr>
@@ -89,6 +89,33 @@ function guardar(){
   });
 
   alert("Guardado correctamente");
+
+}
+
+</script>
+<script>
+
+async function nuevoEvento(){
+
+  const snapshot = await db.collection("tesoreria")
+    .where("codigoCapitulo", "==", codigoUsuario)
+    .orderBy("fecha", "desc")
+    .limit(1)
+    .get();
+
+  if(!snapshot.empty){
+
+    const ultimo = snapshot.docs[0].data();
+
+    document.getElementById("saldoInicial").value = ultimo.saldoFinal;
+
+  }else{
+
+    document.getElementById("saldoInicial").value = 0;
+
+  }
+
+  alert("Nuevo evento listo");
 
 }
 
