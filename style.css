@@ -1,8 +1,60 @@
 body{
-  .logo{
-  width:100px;
+  margin:0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #8B0000, #000);
+  color:white;
+
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+
+/* CONTENEDOR PRINCIPAL */
+.app{
+  text-align:center;
+  width:100%;
+  max-width:350px;
+}
+
+/* LOGO */
+.logo{
+  width:120px;
   margin-bottom:10px;
 }
+
+/* TITULO */
+.titulo{
+  color:gold;
+  margin:5px 0;
+}
+
+.sub{
+  font-size:14px;
+  opacity:0.8;
+  margin-bottom:20px;
+}
+
+/* TARJETA */
+.card{
+  background:white;
+  color:black;
+  padding:20px;
+  border-radius:15px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.3);
+}
+
+/* INPUTS */
+input{
+  width:100%;
+  padding:12px;
+  margin:8px 0;
+  border:none;
+  border-radius:8px;
+  background:#f2f2f2;
+}
+
+/* BOTÓN */
 button{
   width:100%;
   padding:12px;
@@ -13,65 +65,8 @@ button{
   cursor:pointer;
   font-size:16px;
 }
-  
-  margin:0;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(135deg, #8B0000, #000);
-  color:white;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
 
-.app{
-  width:100%;
-  max-width:350px;
-  text-align:center;
-}
-
-.titulo{
-  color:gold;
-  margin-bottom:5px;
-}
-
-.sub{
-  font-size:14px;
-  opacity:0.8;
-  margin-bottom:20px;
-}
-
-.card{
-  background:white;
-  color:black;
-  padding:20px;
-  border-radius:15px;
-  box-shadow:0 10px 25px rgba(0,0,0,0.3);
-}
-
-input{
-  width:100%;
-  padding:12px;
-  margin:8px 0;
-  border:none;
-  border-radius:8px;
-  background:#f2f2f2;
-}
-
-button{
-  width:100%;
-  padding:12px;
-  background:gold;
-  border:none;
-  border-radius:10px;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-button:hover{
-  background:#ffd700;
-}
-
+/* LINKS */
 .links{
   margin-top:10px;
   font-size:13px;
@@ -83,51 +78,20 @@ button:hover{
   margin:0 5px;
 }
 
-.links span:hover{
-  text-decoration:underline;
-}
-
+/* MENSAJE */
 #msg{
   margin-top:10px;
   font-size:13px;
   color:red;
 }
-  
-  margin:0;
-  font-family: Arial;
-  background: linear-gradient(#8B0000, #000);
-  color:white;
-  text-align:center;
-}
 
-.logo{
-  width:180px;
-  margin-top:20px;
-}
+/* 📱 RESPONSIVE */
+@media (max-width: 600px){
+  .logo{
+    width:90px;
+  }
 
-.btn{
-  display:block;
-  background:gold;
-  color:black;
-  margin:10px;
-  padding:15px;
-  text-decoration:none;
-  border-radius:10px;
-  font-weight:bold;
-}
-
-table{
-  width:100%;
-  background:white;
-  color:black;
-  border-collapse: collapse;
-}
-
-td, th{
-  border:1px solid black;
-  padding:5px;
-}
-
-input{
-  width:100%;
+  .card{
+    padding:15px;
+  }
 }
