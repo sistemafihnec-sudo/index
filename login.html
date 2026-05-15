@@ -9,7 +9,7 @@
 <div class="app">
   <img src="logo.png" class="logo">
   <h2 class="titulo">FIHNEC</h2>
-  <p class="sub">Sistema Administrativo</p>
+  <p class="sub">REGISTRO DE EVENTOS DE LA FRATERNIDAD INERNACIONAL DE HOMBRES DE NEGOCIOS DEL EVANGELIO COMPLEO</p>
   <div class="card">
     <input id="email" placeholder="Correo">
     <div style="position:relative; display:flex; align-items:center;">
@@ -17,7 +17,7 @@
       <span onclick="togglePassword()" style="position:absolute; right:10px; cursor:pointer; font-size:18px; user-select:none;" id="ojito">👁️</span>
     </div>
     <div id="camposRegistro" style="display:none;">
-      <input id="codigo" placeholder="Código">
+      <input id="codigo" placeholder="Código de Capítulo" oninput="this.value = this.value.toUpperCase()">
       <input id="nombre" placeholder="Nombre">
       <input id="ciudad" placeholder="Ciudad">
       <input id="local" placeholder="Local">
@@ -29,12 +29,13 @@
     </div>
     <p id="msg"></p>
   </div>
-</div><!-- Firebase COMPAT -->
+</div>
+
+<!-- Firebase COMPAT -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script>
-// CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyB1SeqgsMF6qFSEm8M4rlF9QeBP2F2HP4Q",
   authDomain: "sistema2026-fihnec.firebaseapp.com",
@@ -58,61 +59,93 @@ function togglePassword() {
 }
 
 // REGISTRO
-function registro(){
-  let email = document.getElementById("email").value;
-  let password = document.getElementById("password").value;
-  let codigo = document.getElementById("codigo").value.toUpperCase();
-  let nombre = document.getElementById("nombre").value;
-  let ciudad = document.getElementById("ciudad").value;
-  let local = document.getElementById("local").value;
-  if(!email || !password || !codigo || !nombre || !ciudad || !local){
+async function registro() {
+  const msg      = document.getElementById("msg");
+  const email    = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const codigo   = document.getElementById("codigo").value.trim().toUpperCase();
+  const nombre   = document.getElementById("nombre").value.trim();
+  const ciudad   = document.getElementById("ciudad").value.trim();
+  const local    = document.getElementById("local").value.trim();
+
+  if (!email || !password || !codigo || !nombre || !ciudad || !local) {
     msg.innerText = "Completa todos los campos";
     return;
   }
-  auth.createUserWithEmailAndPassword(email, password)
-  .then(user => {
-    db.collection("sedes").doc(codigo).set({
-      nombre,
-      ciudad,
-      local
-    });
-    db.collection("usuarios").doc(user.user.uid).set({
+
+  msg.innerText = "Registrando...";
+
+  try {
+    // 1. Buscar el capítulo en sedes para obtener campo, zona y región
+    const sedeDoc = await db.collection("sedes").doc(codigo).get();
+
+    let campo  = "";
+    let zona   = "";
+    let region = "";
+
+    if (sedeDoc.exists) {
+      const sede = sedeDoc.data();
+      campo  = sede.campo  || "";
+      zona   = sede.zona   || "";
+      region = sede.region || "";
+    } else {
+      // Si no existe la sede, la creamos con los datos básicos
+      await db.collection("sedes").doc(codigo).set({ nombre, ciudad, local });
+    }
+
+    // 2. Crear usuario en Firebase Auth
+    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+    const uid = userCredential.user.uid;
+
+    // 3. Guardar usuario con toda la jerarquía
+    await db.collection("usuarios").doc(uid).set({
       email,
       codigoCapitulo: codigo,
+      campo,
+      zona,
+      region,
       rol: "tesorero"
     });
-    msg.innerText = "Registro completo";
-  })
-  .catch(e => msg.innerText = e.message);
+
+    msg.innerText = campo
+      ? `Registro completo ✓ — Campo: ${campo} | Zona: ${zona} | Región: ${region}`
+      : "Registro completo ✓ — (Pide al administrador que complete tu clasificación en Firestore)";
+
+  } catch (e) {
+    msg.innerText = e.message;
+  }
 }
+
 // LOGIN
-function login(){
-  let email = document.getElementById("email").value;
-  let password = document.getElementById("password").value;
+function login() {
+  const msg      = document.getElementById("msg");
+  const email    = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
   auth.signInWithEmailAndPassword(email, password)
-  .then(() => {
-    window.location.href = "index.html";
-  })
-  .catch(e => msg.innerText = e.message);
+    .then(() => { window.location.href = "index.html"; })
+    .catch(e => msg.innerText = e.message);
 }
+
 // RECUPERAR
-function recuperar(){
-  let email = document.getElementById("email").value;
+function recuperar() {
+  const email = document.getElementById("email").value.trim();
   auth.sendPasswordResetEmail(email)
-  .then(() => msg.innerText = "Correo enviado")
-  .catch(e => msg.innerText = e.message);
+    .then(() => document.getElementById("msg").innerText = "Correo enviado")
+    .catch(e => document.getElementById("msg").innerText = e.message);
 }
-function modoRegistro(){
+
+function modoRegistro() {
   document.getElementById("camposRegistro").style.display = "block";
   document.getElementById("btnAccion").innerText = "Registrar";
   document.getElementById("btnAccion").onclick = registro;
 }
-function modoLogin(){
+
+function modoLogin() {
   document.getElementById("camposRegistro").style.display = "none";
   document.getElementById("btnAccion").innerText = "Ingresar";
   document.getElementById("btnAccion").onclick = login;
 }
-// iniciar en login
+
 window.onload = modoLogin;
 </script>
 </body>
