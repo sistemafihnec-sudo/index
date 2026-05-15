@@ -5,122 +5,163 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
 <h2>TESORERÍA</h2>
 <button onclick="nuevoEvento()">Nuevo Evento</button>
 
+<!-- Modal fecha -->
+<div id="modalFecha" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.5); z-index:999; justify-content:center; align-items:center;">
+  <div style="background:#fff; padding:30px; border-radius:12px; text-align:center; min-width:280px;">
+    <h3 style="margin-bottom:16px;">Fecha del Evento</h3>
+    <input type="date" id="fechaEvento" style="padding:8px; font-size:16px; width:100%; border-radius:8px; border:1px solid #ccc;">
+    <br><br>
+    <button onclick="confirmarNuevoEvento()" style="padding:10px 24px; margin-right:10px;">Confirmar</button>
+    <button onclick="cerrarModal()" style="padding:10px 24px;">Cancelar</button>
+  </div>
+</div>
+
 <table>
-<input type="number" id="saldoInicial" placeholder="Saldo inicial">
-
+<tr><td>Saldo Inicial</td><td><input type="number" id="saldoInicial" placeholder="0" oninput="calcular()"></td></tr>
+<tr><td>Fecha del Evento</td><td><input type="date" id="fechaMostrar" style="width:100%;"></td></tr>
 <tr><th colspan="2">Ingresos</th></tr>
-<tr><td>Servicios Vendidos</td><td><input id="i1" oninput="calcular()"></td></tr>
-<tr><td>Ofrendas/Sobres</td><td><input id="i2" oninput="calcular()"></td></tr>
-<tr><td>Diezmos/Miembros</td><td><input id="i3" oninput="calcular()"></td></tr>
-<tr><td>Otros Ingresos</td><td><input id="i4" oninput="calcular()"></td></tr>
-<tr><td>INGRESOS DEL EVENTO</td><td><input id="i4" oninput="calcular()"></td></tr>
-
-<tr><td>Total</td><td id="totalI"></td></tr>
-<tr><td>Disponible</td><td id="totalD"></td></tr>
-
+<tr><td>Servicios Vendidos</td><td><input id="i1" type="number" oninput="calcular()"></td></tr>
+<tr><td>Ofrendas/Sobres</td><td><input id="i2" type="number" oninput="calcular()"></td></tr>
+<tr><td>Diezmos/Miembros</td><td><input id="i3" type="number" oninput="calcular()"></td></tr>
+<tr><td>Otros Ingresos</td><td><input id="i4" type="number" oninput="calcular()"></td></tr>
+<tr><td><strong>Ingresos del Evento</strong></td><td id="ingresosEvento" style="font-weight:bold;">0.00</td></tr>
+<tr><td>Total</td><td id="totalI">0.00</td></tr>
+<tr><td>Disponible</td><td id="totalD" style="font-weight:bold;">0.00</td></tr>
 <tr><th colspan="2">Egresos</th></tr>
-<tr><td>Diezmo Oficina Nacional</td><td><input id="e1" oninput="calcular()"></td></tr>
-<tr><td>Ofrenda al Testimonio</td><td><input id="e2" oninput="calcular()"></td></tr>
-<tr><td>Factura</td><td><input id="e3" oninput="calcular()"></td></tr>
-<tr><td>Medias Becas</td><td><input id="e4" oninput="calcular()"></td></tr>
-<tr><td>Otros Gastos</td><td><input id="e5" oninput="calcular()"></td></tr>
-
-<tr><td>Total</td><td id="totalE"></td></tr>
-<tr><td>Final</td><td id="saldoF"></td></tr>
+<tr><td>Diezmo Oficina Nacional</td><td><input id="e1" type="number" oninput="calcular()"></td></tr>
+<tr><td>Ofrenda al Testimonio</td><td><input id="e2" type="number" oninput="calcular()"></td></tr>
+<tr><td>Factura</td><td><input id="e3" type="number" oninput="calcular()"></td></tr>
+<tr><td>Medias Becas</td><td><input id="e4" type="number" oninput="calcular()"></td></tr>
+<tr><td>Otros Gastos</td><td><input id="e5" type="number" oninput="calcular()"></td></tr>
+<tr><td><strong>Total de Gastos</strong></td><td id="totalE" style="font-weight:bold;">0.00</td></tr>
+<tr><td><strong>Saldo Final</strong></td><td id="saldoF" style="font-weight:bold;">0.00</td></tr>
 </table>
 
 <button class="btn" onclick="guardarTesoreria()">Guardar</button>
 
-<script type="module" src="app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script>
-
 const firebaseConfig = {
   apiKey: "AIzaSyB1SeqgsMF6qFSEm8M4rlF9QeBP2F2HP4Q",
   authDomain: "sistema2026-fihnec.firebaseapp.com",
   projectId: "sistema2026-fihnec"
 };
-
 firebase.initializeApp(firebaseConfig);
-
 const auth = firebase.auth();
 const db = firebase.firestore();
 
 let codigoUsuario = "";
 
 auth.onAuthStateChanged(async (user) => {
-
-  if(user){
-
-    const docUser = await db.collection("usuarios").doc(user.uid).get();
-    const data = docUser.data();
-
-    codigoUsuario = data.codigoCapitulo;
-
-    console.log("Mi código:", codigoUsuario);
-  }else{
-    window.location.href = "login.html";
-  }
-
-});
-
-</script>
-<script>
-
-let codigoUsuario = "";
-
-auth.onAuthStateChanged(async (user) => {
-
-  if(user){
+  if (user) {
     const docUser = await db.collection("usuarios").doc(user.uid).get();
     codigoUsuario = docUser.data().codigoCapitulo;
+    cargarSaldoInicial(); // Al entrar carga automáticamente el saldo del último evento
+  } else {
+    window.location.href = "login.html";
   }
-
 });
 
-function guardar(){
-
-  db.collection("tesoreria").add({
-    codigoCapitulo: codigoUsuario,
-    saldoInicial: 100,
-    fecha: new Date()
-  });
-
-  alert("Guardado correctamente");
-
-}
-
-</script>
-<script>
-
-async function nuevoEvento(){
-
+// Carga el saldo final del último evento automáticamente
+async function cargarSaldoInicial() {
   const snapshot = await db.collection("tesoreria")
     .where("codigoCapitulo", "==", codigoUsuario)
     .orderBy("fecha", "desc")
     .limit(1)
     .get();
-
-  if(!snapshot.empty){
-
+  if (!snapshot.empty) {
     const ultimo = snapshot.docs[0].data();
-
     document.getElementById("saldoInicial").value = ultimo.saldoFinal;
-
-  }else{
-
+  } else {
     document.getElementById("saldoInicial").value = 0;
-
   }
-
-  alert("Nuevo evento listo");
-
+  calcular();
 }
 
-</script>
+// Abre el modal para ingresar la fecha
+function nuevoEvento() {
+  const hoy = new Date().toISOString().split("T")[0];
+  document.getElementById("fechaEvento").value = hoy;
+  document.getElementById("modalFecha").style.display = "flex";
+}
 
+function cerrarModal() {
+  document.getElementById("modalFecha").style.display = "none";
+}
+
+// Confirma fecha, carga saldo y limpia campos de ingresos/egresos
+async function confirmarNuevoEvento() {
+  const fecha = document.getElementById("fechaEvento").value;
+  if (!fecha) {
+    alert("Por favor ingresa la fecha del evento.");
+    return;
+  }
+  document.getElementById("fechaMostrar").value = fecha;
+  cerrarModal();
+
+  await cargarSaldoInicial();
+
+  ["i1","i2","i3","i4","e1","e2","e3","e4","e5"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
+  calcular();
+}
+
+function val(id) {
+  return parseFloat(document.getElementById(id).value) || 0;
+}
+
+function calcular() {
+  const saldoInicial = parseFloat(document.getElementById("saldoInicial").value) || 0;
+  const i1 = val("i1"), i2 = val("i2"), i3 = val("i3"), i4 = val("i4");
+  const ingresosEvento = i1 + i2 + i3 + i4;
+
+  document.getElementById("ingresosEvento").innerText = ingresosEvento.toFixed(2);
+  document.getElementById("totalI").innerText = ingresosEvento.toFixed(2);
+
+  const disponible = saldoInicial + ingresosEvento;
+  document.getElementById("totalD").innerText = disponible.toFixed(2);
+
+  const e1 = val("e1"), e2 = val("e2"), e3 = val("e3"), e4 = val("e4"), e5 = val("e5");
+  const totalE = e1 + e2 + e3 + e4 + e5;
+  document.getElementById("totalE").innerText = totalE.toFixed(2);
+
+  const saldoFinal = disponible - totalE;
+  document.getElementById("saldoF").innerText = saldoFinal.toFixed(2);
+}
+
+function guardarTesoreria() {
+  const fecha = document.getElementById("fechaMostrar").value;
+  if (!fecha) {
+    alert("Primero crea un nuevo evento con su fecha.");
+    return;
+  }
+  const saldoInicial   = parseFloat(document.getElementById("saldoInicial").value) || 0;
+  const ingresosEvento = parseFloat(document.getElementById("ingresosEvento").innerText) || 0;
+  const disponible     = parseFloat(document.getElementById("totalD").innerText) || 0;
+  const totalEgresos   = parseFloat(document.getElementById("totalE").innerText) || 0;
+  const saldoFinal     = parseFloat(document.getElementById("saldoF").innerText) || 0;
+
+  db.collection("tesoreria").add({
+    codigoCapitulo: codigoUsuario,
+    fecha: new Date(fecha + "T00:00:00"),
+    saldoInicial,
+    i1: val("i1"), i2: val("i2"), i3: val("i3"), i4: val("i4"),
+    ingresosEvento,
+    disponible,
+    e1: val("e1"), e2: val("e2"), e3: val("e3"), e4: val("e4"), e5: val("e5"),
+    totalEgresos,
+    saldoFinal
+  }).then(() => {
+    alert("Guardado correctamente");
+  }).catch(e => alert("Error: " + e.message));
+}
+</script>
 </body>
 </html>
