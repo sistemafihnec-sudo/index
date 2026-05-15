@@ -179,8 +179,14 @@ function guardarTesoreria() {
     e1: val("e1"), e2: val("e2"), e3: val("e3"), e4: val("e4"), e5: val("e5"),
     totalEgresos,
     saldoFinal
-  }).then(() => {
+}).then(() => {
     alert("Guardado correctamente");
+    // Limpiar campos después de guardar
+    ["i1","i2","i3","i4","e1","e2","e3","e4","e5"].forEach(id => {
+      document.getElementById(id).value = "";
+    });
+    document.getElementById("fechaMostrar").value = "";
+    cargarSaldoInicial();
   }).catch(e => alert("Error: " + e.message));
 }
 </script>
