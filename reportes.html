@@ -3,103 +3,366 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="style.css">
+<!-- jsPDF para exportar PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<!-- SheetJS para exportar Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; padding: 16px; max-width: 1100px; margin: auto; }
+  h2 { text-align: center; margin-top: 24px; }
+  .filtros { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 16px; background: #f5f5f5; padding: 14px; border-radius: 8px; }
+  .filtros label { font-size: 13px; font-weight: bold; display: flex; flex-direction: column; gap: 4px; }
+  .filtros select, .filtros input { padding: 7px 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; }
+  .btn-filtrar { padding: 8px 18px; background: #2c2c2c; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+  .btns-descarga { display: flex; gap: 10px; margin: 12px 0; flex-wrap: wrap; }
+  .btn-pdf  { padding: 9px 20px; background: #c0392b; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+  .btn-excel{ padding: 9px 20px; background: #27ae60; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 30px; font-size: 13px; }
+  th { background: #c8a400; color: #222; padding: 8px 10px; text-align: center; }
+  td { border: 1px solid #ccc; padding: 7px 10px; text-align: center; }
+  tr:nth-child(even) td { background: #f9f9f9; }
+  .fila-total td { background: #2c2c2c !important; color: #fff; font-weight: bold; }
+  .seccion-titulo { background: #2c2c2c; color: #fff; padding: 10px 16px; border-radius: 6px; margin: 20px 0 10px; font-size: 16px; letter-spacing: 2px; }
+  #msgRol { text-align:center; color:#888; margin-top: 30px; font-size: 15px; }
+  .tag-capitulo { display:inline-block; background:#eee; padding:3px 10px; border-radius:20px; font-size:12px; margin-left:8px; }
+</style>
 </head>
 <body>
 
-<h2>Reportes de Tesorería</h2>
-<table border="1" width="100%">
+<h2>REPORTES</h2>
+
+<!-- Filtros solo para maestro -->
+<div id="panelFiltros" style="display:none;">
+  <div class="filtros">
+    <label>Capítulo
+      <select id="filtroCapitulo"><option value="">Todos</option></select>
+    </label>
+    <label>Año
+      <select id="filtroAnio"><option value="">Todos</option></select>
+    </label>
+    <label>Mes
+      <select id="filtroMes">
+        <option value="">Todos</option>
+        <option value="0">Enero</option><option value="1">Febrero</option>
+        <option value="2">Marzo</option><option value="3">Abril</option>
+        <option value="4">Mayo</option><option value="5">Junio</option>
+        <option value="6">Julio</option><option value="7">Agosto</option>
+        <option value="8">Septiembre</option><option value="9">Octubre</option>
+        <option value="10">Noviembre</option><option value="11">Diciembre</option>
+      </select>
+    </label>
+    <button class="btn-filtrar" onclick="aplicarFiltros()">Filtrar</button>
+  </div>
+</div>
+
+<!-- Botones descarga -->
+<div class="btns-descarga">
+  <button class="btn-pdf"   onclick="descargarPDF()">⬇ Descargar PDF</button>
+  <button class="btn-excel" onclick="descargarExcel()">⬇ Descargar Excel</button>
+</div>
+
+<!-- TESORERÍA -->
+<div class="seccion-titulo">T E S O R E R Í A</div>
+<table id="tablaTesoreria">
   <thead>
     <tr>
       <th>Fecha</th>
+      <th>Capítulo</th>
       <th>Saldo Inicial</th>
-      <th>Ingresos</th>
-      <th>Egresos</th>
+      <th>Servicios</th>
+      <th>Ofrendas</th>
+      <th>Diezmos</th>
+      <th>Otros Ing.</th>
+      <th>Ing. Evento</th>
+      <th>Disponible</th>
+      <th>Diezmo Nac.</th>
+      <th>Of. Testimonio</th>
+      <th>Factura</th>
+      <th>Med. Becas</th>
+      <th>Otros Gastos</th>
+      <th>Total Gastos</th>
       <th>Saldo Final</th>
     </tr>
   </thead>
-  <tbody id="tablaDatos"></tbody>
+  <tbody id="cuerpoTesoreria"></tbody>
+  <tfoot id="totalTesoreria"></tfoot>
 </table>
 
-<h2>SECRETARÍA</h2>
+<!-- SECRETARÍA -->
+<div class="seccion-titulo">S E C R E T A R Í A</div>
 <table id="tablaSecretaria">
-<tr><th>Fecha</th><th>Visitas</th><th>Miembros</th><th>Invitados</th><th>Asistencia</th></tr>
+  <thead>
+    <tr>
+      <th>Evento No.</th>
+      <th>Fecha</th>
+      <th>Capítulo</th>
+      <th>Visitas</th>
+      <th>Miembros</th>
+      <th>Invitados</th>
+      <th>Asistencia</th>
+      <th>No. Eventos Ext.</th>
+      <th>Invitados Ext.</th>
+    </tr>
+  </thead>
+  <tbody id="cuerpoSecretaria"></tbody>
+  <tfoot id="totalSecretaria"></tfoot>
 </table>
 
-<script type="module" src="app.js"></script>
+<p id="msgRol"></p>
 
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script>
-window.onload = () => {
-  if (typeof cargarTesoreria === "function") cargarTesoreria();
-  if (typeof cargarSecretaria === "function") cargarSecretaria();
+const firebaseConfig = {
+  apiKey: "AIzaSyB1SeqgsMF6qFSEm8M4rlF9QeBP2F2HP4Q",
+  authDomain: "sistema2026-fihnec.firebaseapp.com",
+  projectId: "sistema2026-fihnec"
 };
-</script>
-<body>
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
 
-  <h2>Reportes de Tesorería</h2>
+let rolUsuario    = "";
+let codigoUsuario = "";
+let datosTesoreria  = [];
+let datosSecretaria = [];
 
-  <table border="1" width="100%">
-    <thead>
-      <tr>
-        <th>Fecha</th>
-        <th>Saldo Inicial</th>
-        <th>Ingresos</th>
-        <th>Egresos</th>
-        <th>Saldo Final</th>
-      </tr>
-    </thead>
-    <tbody id="tablaDatos"></tbody>
-  </table>
+auth.onAuthStateChanged(async (user) => {
+  if (!user) { window.location.href = "login.html"; return; }
+  const docUser = await db.collection("usuarios").doc(user.uid).get();
+  const data = docUser.data();
+  rolUsuario    = data.rol || "tesorero";
+  codigoUsuario = data.codigoCapitulo;
 
-  <!-- 🔥 AQUÍ VA EL SCRIPT -->
-  <script>
-
-  let codigoUsuario = "";
-
-  auth.onAuthStateChanged(async (user) => {
-
-    if(user){
-
-      const docUser = await db.collection("usuarios").doc(user.uid).get();
-      codigoUsuario = docUser.data().codigoCapitulo;
-
-      cargarDatos();
-
-    }else{
-      window.location.href = "login.html";
-    }
-
-  });
-
-  async function cargarDatos(){
-
-    const tabla = document.getElementById("tablaDatos");
-    tabla.innerHTML = "";
-
-    const snapshot = await db.collection("tesoreria")
-      .where("codigoCapitulo", "==", codigoUsuario)
-      .get();
-
-    snapshot.forEach(doc => {
-
-      const d = doc.data();
-
-      tabla.innerHTML += `
-        <tr>
-          <td>${new Date(d.fecha.seconds * 1000).toLocaleDateString()}</td>
-          <td>${d.saldoInicial || 0}</td>
-          <td>${d.totalIngresos || 0}</td>
-          <td>${d.totalEgresos || 0}</td>
-          <td>${d.saldoFinal || 0}</td>
-        </tr>
-      `;
-
-    });
-
+  if (rolUsuario === "maestro") {
+    document.getElementById("panelFiltros").style.display = "block";
+    await cargarCapitulosYAnios();
+    await cargarTodos();
+  } else {
+    await cargarMisDatos();
   }
+});
 
-  </script>
+// ── MAESTRO: carga todos los capítulos para el filtro ──
+async function cargarCapitulosYAnios() {
+  const snap = await db.collection("tesoreria").get();
+  const caps  = new Set();
+  const anios = new Set();
+  snap.forEach(doc => {
+    const d = doc.data();
+    if (d.codigoCapitulo) caps.add(d.codigoCapitulo);
+    if (d.fecha) {
+      const fecha = d.fecha.toDate ? d.fecha.toDate() : new Date(d.fecha);
+      anios.add(fecha.getFullYear());
+    }
+  });
+  const selCap  = document.getElementById("filtroCapitulo");
+  const selAnio = document.getElementById("filtroAnio");
+  caps.forEach(c  => selCap.innerHTML  += `<option value="${c}">${c}</option>`);
+  [...anios].sort().forEach(a => selAnio.innerHTML += `<option value="${a}">${a}</option>`);
+}
 
-</body>
+// ── MAESTRO: carga todos los datos ──
+async function cargarTodos() {
+  const [snapT, snapS] = await Promise.all([
+    db.collection("tesoreria").orderBy("fecha","asc").get(),
+    db.collection("secretaria").orderBy("eventoNumero","asc").get()
+  ]);
+  datosTesoreria  = snapT.docs.map(d => ({ id: d.id, ...d.data() }));
+  datosSecretaria = snapS.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderTablas(datosTesoreria, datosSecretaria);
+}
 
+// ── USUARIO NORMAL: solo sus datos ──
+async function cargarMisDatos() {
+  const [snapT, snapS] = await Promise.all([
+    db.collection("tesoreria").where("codigoCapitulo","==",codigoUsuario).orderBy("fecha","asc").get(),
+    db.collection("secretaria").where("codigoCapitulo","==",codigoUsuario).orderBy("eventoNumero","asc").get()
+  ]);
+  datosTesoreria  = snapT.docs.map(d => ({ id: d.id, ...d.data() }));
+  datosSecretaria = snapS.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderTablas(datosTesoreria, datosSecretaria);
+}
+
+// ── MAESTRO: aplica filtros ──
+function aplicarFiltros() {
+  const cap  = document.getElementById("filtroCapitulo").value;
+  const anio = document.getElementById("filtroAnio").value;
+  const mes  = document.getElementById("filtroMes").value;
+
+  let filtT = datosTesoreria;
+  let filtS = datosSecretaria;
+
+  if (cap)  { filtT = filtT.filter(d => d.codigoCapitulo === cap); filtS = filtS.filter(d => d.codigoCapitulo === cap); }
+  if (anio || mes !== "") {
+    filtT = filtT.filter(d => {
+      const f = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
+      if (anio && f.getFullYear() != anio) return false;
+      if (mes !== "" && f.getMonth() != mes) return false;
+      return true;
+    });
+    filtS = filtS.filter(d => {
+      if (!d.fecha) return true;
+      const f = new Date(d.fecha);
+      if (anio && f.getFullYear() != anio) return false;
+      if (mes !== "" && f.getMonth() != mes) return false;
+      return true;
+    });
+  }
+  renderTablas(filtT, filtS);
+}
+
+// ── RENDER TABLAS ──
+function fmt(v) { return (parseFloat(v) || 0).toFixed(2); }
+function fmtFecha(v) {
+  if (!v) return "";
+  const f = v.toDate ? v.toDate() : new Date(v);
+  return f.toLocaleDateString("es-NI");
+}
+
+function renderTablas(tData, sData) {
+  // Tesorería
+  const cT = document.getElementById("cuerpoTesoreria");
+  cT.innerHTML = "";
+  let totales = { si:0, i1:0, i2:0, i3:0, i4:0, ie:0, dis:0, e1:0, e2:0, e3:0, e4:0, e5:0, tg:0, sf:0 };
+  tData.forEach(d => {
+    cT.innerHTML += `<tr>
+      <td>${fmtFecha(d.fecha)}</td>
+      <td>${d.codigoCapitulo || ""}</td>
+      <td>${fmt(d.saldoInicial)}</td>
+      <td>${fmt(d.i1)}</td>
+      <td>${fmt(d.i2)}</td>
+      <td>${fmt(d.i3)}</td>
+      <td>${fmt(d.i4)}</td>
+      <td>${fmt(d.ingresosEvento)}</td>
+      <td>${fmt(d.disponible)}</td>
+      <td>${fmt(d.e1)}</td>
+      <td>${fmt(d.e2)}</td>
+      <td>${fmt(d.e3)}</td>
+      <td>${fmt(d.e4)}</td>
+      <td>${fmt(d.e5)}</td>
+      <td>${fmt(d.totalEgresos)}</td>
+      <td>${fmt(d.saldoFinal)}</td>
+    </tr>`;
+    totales.si  += parseFloat(d.saldoInicial)||0;
+    totales.ie  += parseFloat(d.ingresosEvento)||0;
+    totales.dis += parseFloat(d.disponible)||0;
+    totales.tg  += parseFloat(d.totalEgresos)||0;
+    totales.sf  += parseFloat(d.saldoFinal)||0;
+  });
+  document.getElementById("totalTesoreria").innerHTML = `<tr class="fila-total">
+    <td colspan="2">TOTALES</td>
+    <td>${fmt(totales.si)}</td>
+    <td></td><td></td><td></td><td></td>
+    <td>${fmt(totales.ie)}</td>
+    <td>${fmt(totales.dis)}</td>
+    <td></td><td></td><td></td><td></td><td></td>
+    <td>${fmt(totales.tg)}</td>
+    <td>${fmt(totales.sf)}</td>
+  </tr>`;
+
+  // Secretaría
+  const cS = document.getElementById("cuerpoSecretaria");
+  cS.innerHTML = "";
+  let totsS = { v:0, m:0, i:0, a:0, ne:0, ie:0 };
+  sData.forEach(d => {
+    cS.innerHTML += `<tr>
+      <td>${d.eventoNumero || ""}</td>
+      <td>${d.fecha || ""}</td>
+      <td>${d.codigoCapitulo || ""}</td>
+      <td>${d.visitas||0}</td>
+      <td>${d.miembros||0}</td>
+      <td>${d.invitados||0}</td>
+      <td>${d.asistencia||0}</td>
+      <td>${d.noEventos||0}</td>
+      <td>${d.invitadosExt||0}</td>
+    </tr>`;
+    totsS.v  += parseFloat(d.visitas)||0;
+    totsS.m  += parseFloat(d.miembros)||0;
+    totsS.i  += parseFloat(d.invitados)||0;
+    totsS.a  += parseFloat(d.asistencia)||0;
+    totsS.ne += parseFloat(d.noEventos)||0;
+    totsS.ie += parseFloat(d.invitadosExt)||0;
+  });
+  document.getElementById("totalSecretaria").innerHTML = `<tr class="fila-total">
+    <td colspan="3">TOTALES</td>
+    <td>${totsS.v}</td><td>${totsS.m}</td><td>${totsS.i}</td>
+    <td>${totsS.a}</td><td>${totsS.ne}</td><td>${totsS.ie}</td>
+  </tr>`;
+}
+
+// ── DESCARGA PDF ──
+function descargarPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "letter" });
+
+  const filtros = obtenerDescripcionFiltros();
+
+  // Tesorería
+  doc.setFontSize(14);
+  doc.text("REPORTE DE TESORERÍA - FIHNEC", 14, 15);
+  doc.setFontSize(10);
+  doc.text(filtros, 14, 22);
+
+  const headT = [["Fecha","Capítulo","S.Inicial","Servicios","Ofrendas","Diezmos","Otros Ing.","Ing.Evento","Disponible","Diezmo Nac.","Of.Test.","Factura","Med.Becas","Otros G.","Total G.","S.Final"]];
+  const rowsT = [];
+  document.querySelectorAll("#cuerpoTesoreria tr").forEach(tr => {
+    rowsT.push([...tr.querySelectorAll("td")].map(td => td.innerText));
+  });
+  const totT = [...document.querySelectorAll("#totalTesoreria td")].map(td => td.innerText);
+
+  doc.autoTable({ head: headT, body: rowsT, foot: [totT], startY: 27, styles: { fontSize: 7 }, headStyles: { fillColor: [200,164,0] }, footStyles: { fillColor: [44,44,44], textColor: 255 } });
+
+  // Secretaría
+  const y2 = doc.lastAutoTable.finalY + 12;
+  doc.setFontSize(14);
+  doc.text("REPORTE DE SECRETARÍA - FIHNEC", 14, y2);
+
+  const headS = [["Evento","Fecha","Capítulo","Visitas","Miembros","Invitados","Asistencia","No.Ev.Ext","Inv.Ext"]];
+  const rowsS = [];
+  document.querySelectorAll("#cuerpoSecretaria tr").forEach(tr => {
+    rowsS.push([...tr.querySelectorAll("td")].map(td => td.innerText));
+  });
+  const totS = [...document.querySelectorAll("#totalSecretaria td")].map(td => td.innerText);
+
+  doc.autoTable({ head: headS, body: rowsS, foot: [totS], startY: y2 + 6, styles: { fontSize: 7 }, headStyles: { fillColor: [200,164,0] }, footStyles: { fillColor: [44,44,44], textColor: 255 } });
+
+  doc.save("reporte-fihnec.pdf");
+}
+
+// ── DESCARGA EXCEL ──
+function descargarExcel() {
+  const wb = XLSX.utils.book_new();
+
+  // Hoja Tesorería
+  const headT = [["Fecha","Capítulo","Saldo Inicial","Servicios","Ofrendas","Diezmos","Otros Ing.","Ing. Evento","Disponible","Diezmo Nac.","Of. Testimonio","Factura","Med. Becas","Otros Gastos","Total Gastos","Saldo Final"]];
+  const rowsT = [];
+  document.querySelectorAll("#cuerpoTesoreria tr").forEach(tr => rowsT.push([...tr.querySelectorAll("td")].map(td => td.innerText)));
+  const totT  = [[...document.querySelectorAll("#totalTesoreria td")].map(td => td.innerText).join(" | ")];
+  const wsT = XLSX.utils.aoa_to_sheet([...headT, ...rowsT]);
+  XLSX.utils.book_append_sheet(wb, wsT, "Tesorería");
+
+  // Hoja Secretaría
+  const headS = [["Evento","Fecha","Capítulo","Visitas","Miembros","Invitados","Asistencia","No. Ev. Ext.","Inv. Ext."]];
+  const rowsS = [];
+  document.querySelectorAll("#cuerpoSecretaria tr").forEach(tr => rowsS.push([...tr.querySelectorAll("td")].map(td => td.innerText)));
+  const wsS = XLSX.utils.aoa_to_sheet([...headS, ...rowsS]);
+  XLSX.utils.book_append_sheet(wb, wsS, "Secretaría");
+
+  XLSX.writeFile(wb, "reporte-fihnec.xlsx");
+}
+
+function obtenerDescripcionFiltros() {
+  if (rolUsuario !== "maestro") return `Capítulo: ${codigoUsuario}`;
+  const cap  = document.getElementById("filtroCapitulo")?.value || "Todos";
+  const anio = document.getElementById("filtroAnio")?.value     || "Todos";
+  const mes  = document.getElementById("filtroMes");
+  const mesT = mes?.options[mes.selectedIndex]?.text            || "Todos";
+  return `Capítulo: ${cap} | Año: ${anio} | Mes: ${mesT}`;
+}
+</script>
 </body>
 </html>
