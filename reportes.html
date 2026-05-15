@@ -168,22 +168,34 @@ async function cargarCapitulosYAnios() {
 // ── MAESTRO: carga todos los datos ──
 async function cargarTodos() {
   const [snapT, snapS] = await Promise.all([
-    db.collection("tesoreria").orderBy("fecha","asc").get(),
-    db.collection("secretaria").orderBy("eventoNumero","asc").get()
+    db.collection("tesoreria").get(),
+    db.collection("secretaria").get()
   ]);
   datosTesoreria  = snapT.docs.map(d => ({ id: d.id, ...d.data() }));
   datosSecretaria = snapS.docs.map(d => ({ id: d.id, ...d.data() }));
+  datosTesoreria.sort((a,b) => {
+    const fa = a.fecha?.toDate ? a.fecha.toDate() : new Date(a.fecha);
+    const fb = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha);
+    return fa - fb;
+  });
+  datosSecretaria.sort((a,b) => (a.eventoNumero||0) - (b.eventoNumero||0));
   renderTablas(datosTesoreria, datosSecretaria);
 }
 
 // ── USUARIO NORMAL: solo sus datos ──
 async function cargarMisDatos() {
   const [snapT, snapS] = await Promise.all([
-    db.collection("tesoreria").where("codigoCapitulo","==",codigoUsuario).orderBy("fecha","asc").get(),
-    db.collection("secretaria").where("codigoCapitulo","==",codigoUsuario).orderBy("eventoNumero","asc").get()
+    db.collection("tesoreria").where("codigoCapitulo","==",codigoUsuario).get(),
+    db.collection("secretaria").where("codigoCapitulo","==",codigoUsuario).get()
   ]);
   datosTesoreria  = snapT.docs.map(d => ({ id: d.id, ...d.data() }));
   datosSecretaria = snapS.docs.map(d => ({ id: d.id, ...d.data() }));
+  datosTesoreria.sort((a,b) => {
+    const fa = a.fecha?.toDate ? a.fecha.toDate() : new Date(a.fecha);
+    const fb = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha);
+    return fa - fb;
+  });
+  datosSecretaria.sort((a,b) => (a.eventoNumero||0) - (b.eventoNumero||0));
   renderTablas(datosTesoreria, datosSecretaria);
 }
 
