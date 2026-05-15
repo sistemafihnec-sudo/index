@@ -72,15 +72,18 @@ auth.onAuthStateChanged(async (user) => {
 async function cargarSaldoInicial() {
   const snapshot = await db.collection("tesoreria")
     .where("codigoCapitulo", "==", codigoUsuario)
-    .orderBy("fecha", "desc")
-    .limit(1)
     .get();
 
   const campo = document.getElementById("saldoInicial");
 
-  if (!snapshot.empty) {
-    // Hay eventos anteriores: carga automático y bloquea edición
-    const ultimo = snapshot.docs[0].data();
+if (!snapshot.empty) {
+    const docs = snapshot.docs.map(d => d.data());
+    docs.sort((a, b) => {
+      const fa = a.fecha?.toDate ? a.fecha.toDate() : new Date(a.fecha);
+      const fb = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha);
+      return fb - fa;
+    });
+    const ultimo = docs[0];
     campo.value = ultimo.saldoFinal;
     campo.readOnly = true;
     campo.style.background = "#e9e9e9";
