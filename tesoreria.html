@@ -21,18 +21,30 @@
 <h2>TESORERÍA</h2>
 
 <!-- Lista de eventos guardados -->
-<h3>Eventos Registrados</h3>
-<div style="overflow-x:auto;">
+<button onclick="toggleEventos()" style="margin-bottom:10px; padding:9px 20px; background:#2c2c2c; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:14px;">📋 Eventos Registrados</button>
+<div id="panelEventos" style="display:none; overflow-x:auto;">
   <table class="eventos-lista" id="tablaEventos">
     <thead>
       <tr>
         <th>#</th><th>Fecha</th><th>S. Inicial</th><th>Ing. Evento</th>
         <th>Disponible</th><th>Total Gastos</th><th>S. Final</th>
-        <th>Editar</th><th>Eliminar</th>
+        <th>Ver</th><th>Editar</th><th>Eliminar</th>
       </tr>
     </thead>
     <tbody id="cuerpoEventos"></tbody>
   </table>
+</div>
+</div>
+
+<!-- Modal Ver Evento -->
+<div id="modalVer" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.6); z-index:1000; justify-content:center; align-items:center; overflow-y:auto;">
+  <div style="background:#fff; padding:28px; border-radius:12px; min-width:300px; max-width:500px; width:90%; margin:20px auto;">
+    <h3 style="margin-bottom:16px; text-align:center;">📄 Detalle del Evento</h3>
+    <table style="width:100%; border-collapse:collapse; font-size:14px;" id="tablaVer"></table>
+    <br>
+    <button onclick="cerrarModalVer()" style="width:100%; padding:10px; background:#2c2c2c; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:15px;">Cerrar</button>
+  </div>
 </div>
 
 <!-- Formulario nuevo/editar evento -->
@@ -143,6 +155,7 @@ function renderListaEventos() {
       <td>${fmt(ev.disponible)}</td>
       <td>${fmt(ev.totalEgresos)}</td>
       <td>${fmt(ev.saldoFinal)}</td>
+      <td><button style="background:#2980b9;color:#fff;border:none;padding:5px 12px;border-radius:5px;cursor:pointer;font-weight:bold;" onclick="verEvento('${ev.id}')">Ver</button></td>
       <td><button class="btn-editar" onclick="editarEvento('${ev.id}')">Editar</button></td>
       <td><button class="btn-eliminar" onclick="eliminarEvento('${ev.id}')">Eliminar</button></td>
     </tr>`;
@@ -356,6 +369,46 @@ async function recalcularCadena() {
 
   await batch.commit();
   renderListaEventos();
+}
+
+// ── TOGGLE PANEL EVENTOS ──
+function toggleEventos() {
+  const panel = document.getElementById("panelEventos");
+  panel.style.display = panel.style.display === "none" ? "block" : "none";
+}
+
+// ── VER EVENTO ──
+function verEvento(id) {
+  const ev = eventosCache.find(e => e.id === id);
+  if (!ev) return;
+  const tabla = document.getElementById("tablaVer");
+  const filas = [
+    ["Fecha",                   fmtFecha(ev.fecha)],
+    ["Saldo Inicial",           fmt(ev.saldoInicial)],
+    ["— Servicios Vendidos",    fmt(ev.i1)],
+    ["— Ofrendas/Sobres",       fmt(ev.i2)],
+    ["— Diezmos/Miembros",      fmt(ev.i3)],
+    ["— Otros Ingresos",        fmt(ev.i4)],
+    ["Ingresos del Evento",     fmt(ev.ingresosEvento)],
+    ["Disponible",              fmt(ev.disponible)],
+    ["— Diezmo Nac. (10%)",     fmt(ev.e1)],
+    ["— Ofrenda al Testimonio", fmt(ev.e2)],
+    ["— Factura",               fmt(ev.e3)],
+    ["— Medias Becas",          fmt(ev.e4)],
+    ["— Otros Gastos",          fmt(ev.e5)],
+    ["Total de Gastos",         fmt(ev.totalEgresos)],
+    ["Saldo Final",             fmt(ev.saldoFinal)],
+  ];
+  tabla.innerHTML = filas.map((f, i) => `
+    <tr style="background:${i%2===0?'#f9f9f9':'#fff'}">
+      <td style="padding:7px 10px; font-weight:bold; border-bottom:1px solid #eee;">${f[0]}</td>
+      <td style="padding:7px 10px; text-align:right; border-bottom:1px solid #eee;">${f[1]}</td>
+    </tr>`).join("");
+  document.getElementById("modalVer").style.display = "flex";
+}
+
+function cerrarModalVer() {
+  document.getElementById("modalVer").style.display = "none";
 }
 
 // ── LIMPIAR FORMULARIO ──
