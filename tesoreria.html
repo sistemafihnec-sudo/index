@@ -4,6 +4,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="style.css">
 <style>
+  /* Sobrescribir estilos globales de style.css para tesorería */
+body {
+  background: #f0f0f0;
+  color: #222;
+}
+h2 {
+  color: #222;
+}
+table input {
+  width: 100%;
+  padding: 6px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  color: #222;
+  box-sizing: border-box;
+}
+table button {
+  width: auto;
+  padding: 5px 12px;
+  font-size: 13px;
+}
+.formulario button#btnNuevo,
+.formulario button#btnCancelar,
+.formulario > button:last-child {
+  width: auto;
+}
   .eventos-lista { width:100%; border-collapse:collapse; margin-bottom:20px; font-size:13px; }
   .eventos-lista th { background:#2c2c2c; color:#fff; padding:8px; text-align:center; }
   .eventos-lista td { border:1px solid #ccc; padding:7px; text-align:center; }
