@@ -3,45 +3,79 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="style.css">
+<style>
+  .eventos-lista { width:100%; border-collapse:collapse; margin-bottom:20px; font-size:13px; }
+  .eventos-lista th { background:#2c2c2c; color:#fff; padding:8px; text-align:center; }
+  .eventos-lista td { border:1px solid #ccc; padding:7px; text-align:center; }
+  .eventos-lista tr:nth-child(even) td { background:#f9f9f9; }
+  .btn-editar  { background:#c8a400; color:#222; border:none; padding:5px 12px; border-radius:5px; cursor:pointer; font-weight:bold; }
+  .btn-eliminar{ background:#c0392b; color:#fff; border:none; padding:5px 12px; border-radius:5px; cursor:pointer; font-weight:bold; }
+  .formulario  { background:#f5f5f5; border-radius:10px; padding:16px; margin-bottom:20px; }
+  .formulario table { width:100%; }
+  .formulario td { padding:6px 8px; }
+  .modo-edicion { background:#fff3cd; border:2px solid #c8a400; border-radius:10px; padding:4px 12px; display:inline-block; margin-bottom:10px; font-size:13px; }
+  h3 { margin:10px 0 6px; }
+</style>
 </head>
 <body>
 <h2>TESORERÍA</h2>
-<button onclick="nuevoEvento()">Nuevo Evento</button>
+
+<!-- Lista de eventos guardados -->
+<h3>Eventos Registrados</h3>
+<div style="overflow-x:auto;">
+  <table class="eventos-lista" id="tablaEventos">
+    <thead>
+      <tr>
+        <th>#</th><th>Fecha</th><th>S. Inicial</th><th>Ing. Evento</th>
+        <th>Disponible</th><th>Total Gastos</th><th>S. Final</th>
+        <th>Editar</th><th>Eliminar</th>
+      </tr>
+    </thead>
+    <tbody id="cuerpoEventos"></tbody>
+  </table>
+</div>
+
+<!-- Formulario nuevo/editar evento -->
+<div class="formulario">
+  <div id="tagEdicion" class="modo-edicion" style="display:none;">✏️ Editando evento del <span id="fechaEdicion"></span></div>
+  <button onclick="abrirModalFecha()" id="btnNuevo" style="margin-bottom:12px; padding:9px 20px; background:#2c2c2c; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:14px;">+ Nuevo Evento</button>
+  <button onclick="cancelarEdicion()" id="btnCancelar" style="display:none; margin-bottom:12px; margin-left:10px; padding:9px 20px; background:#aaa; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:14px;">Cancelar</button>
+
+  <table>
+    <tr><td>Saldo Inicial</td><td><input type="number" id="saldoInicial" placeholder="Ingresa el saldo inicial" oninput="calcular()"></td></tr>
+    <tr><td>Fecha del Evento</td><td><input type="date" id="fechaMostrar" style="width:100%;" onchange="calcular()"></td></tr>
+    <tr><th colspan="2">Ingresos</th></tr>
+    <tr><td>Servicios Vendidos</td><td><input id="i1" type="number" oninput="calcular()"></td></tr>
+    <tr><td>Ofrendas/Sobres</td><td><input id="i2" type="number" oninput="calcular()"></td></tr>
+    <tr><td>Diezmos/Miembros</td><td><input id="i3" type="number" oninput="calcular()"></td></tr>
+    <tr><td>Otros Ingresos</td><td><input id="i4" type="number" oninput="calcular()"></td></tr>
+    <tr><td><strong>Ingresos del Evento</strong></td><td id="ingresosEvento" style="font-weight:bold;">0.00</td></tr>
+    <tr><td>Total</td><td id="totalI">0.00</td></tr>
+    <tr><td>Disponible</td><td id="totalD" style="font-weight:bold;">0.00</td></tr>
+    <tr><th colspan="2">Egresos</th></tr>
+    <tr><td>Diezmo Oficina Nacional (10%)</td><td><input id="e1" type="number" readonly style="background:#e9e9e9;color:#555;" title="Se calcula automáticamente: 10% de Ofrendas + Diezmos + Otros Ingresos"></td></tr>
+    <tr><td>Ofrenda al Testimonio</td><td><input id="e2" type="number" oninput="calcular()"></td></tr>
+    <tr><td>Factura</td><td><input id="e3" type="number" oninput="calcular()"></td></tr>
+    <tr><td>Medias Becas</td><td><input id="e4" type="number" oninput="calcular()"></td></tr>
+    <tr><td>Otros Gastos</td><td><input id="e5" type="number" oninput="calcular()"></td></tr>
+    <tr><td><strong>Total de Gastos</strong></td><td id="totalE" style="font-weight:bold;">0.00</td></tr>
+    <tr><td><strong>Saldo Final</strong></td><td id="saldoF" style="font-weight:bold;">0.00</td></tr>
+  </table>
+
+  <button onclick="guardarEvento()" style="margin-top:12px; padding:10px 24px; background:#c8a400; color:#222; border:none; border-radius:6px; cursor:pointer; font-size:15px; font-weight:bold;">Guardar</button>
+</div>
 
 <!-- Modal fecha -->
 <div id="modalFecha" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
   background:rgba(0,0,0,0.5); z-index:999; justify-content:center; align-items:center;">
   <div style="background:#fff; padding:30px; border-radius:12px; text-align:center; min-width:280px;">
     <h3 style="margin-bottom:16px;">Fecha del Evento</h3>
-    <input type="date" id="fechaEvento" style="padding:8px; font-size:16px; width:100%; border-radius:8px; border:1px solid #ccc;">
+    <input type="date" id="fechaModal" style="padding:8px; font-size:16px; width:100%; border-radius:8px; border:1px solid #ccc;">
     <br><br>
-    <button onclick="confirmarNuevoEvento()" style="padding:10px 24px; margin-right:10px;">Confirmar</button>
+    <button onclick="confirmarFecha()" style="padding:10px 24px; margin-right:10px;">Confirmar</button>
     <button onclick="cerrarModal()" style="padding:10px 24px;">Cancelar</button>
   </div>
 </div>
-
-<table>
-<tr><td>Saldo Inicial</td><td><input type="number" id="saldoInicial" placeholder="Ingresa el saldo inicial" oninput="calcular()"></td></tr>
-<tr><td>Fecha del Evento</td><td><input type="date" id="fechaMostrar" style="width:100%;"></td></tr>
-<tr><th colspan="2">Ingresos</th></tr>
-<tr><td>Servicios Vendidos</td><td><input id="i1" type="number" oninput="calcular()"></td></tr>
-<tr><td>Ofrendas/Sobres</td><td><input id="i2" type="number" oninput="calcular()"></td></tr>
-<tr><td>Diezmos/Miembros</td><td><input id="i3" type="number" oninput="calcular()"></td></tr>
-<tr><td>Otros Ingresos</td><td><input id="i4" type="number" oninput="calcular()"></td></tr>
-<tr><td><strong>Ingresos del Evento</strong></td><td id="ingresosEvento" style="font-weight:bold;">0.00</td></tr>
-<tr><td>Total</td><td id="totalI">0.00</td></tr>
-<tr><td>Disponible</td><td id="totalD" style="font-weight:bold;">0.00</td></tr>
-<tr><th colspan="2">Egresos</th></tr>
-<tr><td>Diezmo Oficina Nacional (10%)</td><td><input id="e1" type="number" readonly style="background:#e9e9e9;color:#555;" title="Se calcula automáticamente: 10% de Ofrendas + Diezmos + Otros Ingresos"></td></tr>
-<tr><td>Ofrenda al Testimonio</td><td><input id="e2" type="number" oninput="calcular()"></td></tr>
-<tr><td>Factura</td><td><input id="e3" type="number" oninput="calcular()"></td></tr>
-<tr><td>Medias Becas</td><td><input id="e4" type="number" oninput="calcular()"></td></tr>
-<tr><td>Otros Gastos</td><td><input id="e5" type="number" oninput="calcular()"></td></tr>
-<tr><td><strong>Total de Gastos</strong></td><td id="totalE" style="font-weight:bold;">0.00</td></tr>
-<tr><td><strong>Saldo Final</strong></td><td id="saldoF" style="font-weight:bold;">0.00</td></tr>
-</table>
-
-<button class="btn" onclick="guardarTesoreria()">Guardar</button>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -54,43 +88,85 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
-const db = firebase.firestore();
+const db   = firebase.firestore();
 
-let codigoUsuario = "";
+let codigoUsuario  = "";
+let eventosCache   = []; // todos los eventos ordenados por fecha
+let editandoId     = null; // id del documento que se está editando
 
 auth.onAuthStateChanged(async (user) => {
   if (user) {
     const docUser = await db.collection("usuarios").doc(user.uid).get();
     codigoUsuario = docUser.data().codigoCapitulo;
-    cargarSaldoInicial();
+    await cargarEventos();
+    prepararNuevoEvento();
   } else {
     window.location.href = "login.html";
   }
 });
 
-// Carga saldo: editable si es el primer evento, bloqueado si ya hay anteriores
-async function cargarSaldoInicial() {
-  const snapshot = await db.collection("tesoreria")
+// ── CARGA Y RENDERIZA TODOS LOS EVENTOS ──
+async function cargarEventos() {
+  const snap = await db.collection("tesoreria")
     .where("codigoCapitulo", "==", codigoUsuario)
     .get();
 
-  const campo = document.getElementById("saldoInicial");
+  eventosCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  eventosCache.sort((a, b) => {
+    const fa = a.fecha?.toDate ? a.fecha.toDate() : new Date(a.fecha);
+    const fb = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha);
+    return fa - fb;
+  });
+  renderListaEventos();
+}
 
-if (!snapshot.empty) {
-    const docs = snapshot.docs.map(d => d.data());
-    docs.sort((a, b) => {
-      const fa = a.fecha?.toDate ? a.fecha.toDate() : new Date(a.fecha);
-      const fb = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha);
-      return fb - fa;
-    });
-    const ultimo = docs[0];
-    campo.value = ultimo.saldoFinal;
+function fmtFecha(v) {
+  if (!v) return "";
+  const f = v.toDate ? v.toDate() : new Date(v);
+  return f.toLocaleDateString("es-NI");
+}
+function fmt(v) { return (parseFloat(v) || 0).toFixed(2); }
+
+function renderListaEventos() {
+  const tbody = document.getElementById("cuerpoEventos");
+  tbody.innerHTML = "";
+  if (eventosCache.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" style="color:#aaa;">No hay eventos registrados</td></tr>`;
+    return;
+  }
+  eventosCache.forEach((ev, i) => {
+    tbody.innerHTML += `<tr>
+      <td>${i + 1}</td>
+      <td>${fmtFecha(ev.fecha)}</td>
+      <td>${fmt(ev.saldoInicial)}</td>
+      <td>${fmt(ev.ingresosEvento)}</td>
+      <td>${fmt(ev.disponible)}</td>
+      <td>${fmt(ev.totalEgresos)}</td>
+      <td>${fmt(ev.saldoFinal)}</td>
+      <td><button class="btn-editar" onclick="editarEvento('${ev.id}')">Editar</button></td>
+      <td><button class="btn-eliminar" onclick="eliminarEvento('${ev.id}')">Eliminar</button></td>
+    </tr>`;
+  });
+}
+
+// ── PREPARA FORMULARIO PARA NUEVO EVENTO ──
+function prepararNuevoEvento() {
+  editandoId = null;
+  document.getElementById("tagEdicion").style.display = "none";
+  document.getElementById("btnCancelar").style.display = "none";
+  document.getElementById("btnNuevo").style.display = "inline-block";
+
+  limpiarFormulario();
+
+  const campo = document.getElementById("saldoInicial");
+  if (eventosCache.length > 0) {
+    const ultimo = eventosCache[eventosCache.length - 1];
+    campo.value = fmt(ultimo.saldoFinal);
     campo.readOnly = true;
     campo.style.background = "#e9e9e9";
     campo.style.color = "#555";
     campo.title = "Se actualiza automáticamente del evento anterior";
   } else {
-    // Primer evento: permite ingresar manualmente
     campo.value = "";
     campo.readOnly = false;
     campo.style.background = "";
@@ -101,10 +177,68 @@ if (!snapshot.empty) {
   calcular();
 }
 
-// Abre el modal para ingresar la fecha
-function nuevoEvento() {
+// ── EDITAR EVENTO ──
+function editarEvento(id) {
+  const ev = eventosCache.find(e => e.id === id);
+  if (!ev) return;
+
+  editandoId = id;
+  document.getElementById("tagEdicion").style.display = "inline-block";
+  document.getElementById("fechaEdicion").innerText = fmtFecha(ev.fecha);
+  document.getElementById("btnCancelar").style.display = "inline-block";
+  document.getElementById("btnNuevo").style.display = "none";
+
+  // Cargar datos en el formulario
+  const fechaObj = ev.fecha?.toDate ? ev.fecha.toDate() : new Date(ev.fecha);
+  document.getElementById("fechaMostrar").value = fechaObj.toISOString().split("T")[0];
+
+  const campo = document.getElementById("saldoInicial");
+  const idx = eventosCache.findIndex(e => e.id === id);
+  if (idx === 0) {
+    // Primer evento: saldo editable
+    campo.readOnly = false;
+    campo.style.background = "";
+    campo.style.color = "";
+  } else {
+    // No primer evento: saldo bloqueado
+    campo.readOnly = true;
+    campo.style.background = "#e9e9e9";
+    campo.style.color = "#555";
+  }
+  campo.value = fmt(ev.saldoInicial);
+
+  document.getElementById("i1").value = ev.i1 || "";
+  document.getElementById("i2").value = ev.i2 || "";
+  document.getElementById("i3").value = ev.i3 || "";
+  document.getElementById("i4").value = ev.i4 || "";
+  document.getElementById("e2").value = ev.e2 || "";
+  document.getElementById("e3").value = ev.e3 || "";
+  document.getElementById("e4").value = ev.e4 || "";
+  document.getElementById("e5").value = ev.e5 || "";
+  calcular();
+
+  // Scroll al formulario
+  document.querySelector(".formulario").scrollIntoView({ behavior: "smooth" });
+}
+
+function cancelarEdicion() {
+  prepararNuevoEvento();
+}
+
+// ── ELIMINAR EVENTO ──
+async function eliminarEvento(id) {
+  if (!confirm("¿Eliminar este evento? Los saldos se recalcularán automáticamente.")) return;
+  await db.collection("tesoreria").doc(id).delete();
+  await cargarEventos();
+  await recalcularCadena();
+  prepararNuevoEvento();
+  alert("Evento eliminado y saldos recalculados.");
+}
+
+// ── MODAL FECHA ──
+function abrirModalFecha() {
   const hoy = new Date().toISOString().split("T")[0];
-  document.getElementById("fechaEvento").value = hoy;
+  document.getElementById("fechaModal").value = hoy;
   document.getElementById("modalFecha").style.display = "flex";
 }
 
@@ -112,82 +246,129 @@ function cerrarModal() {
   document.getElementById("modalFecha").style.display = "none";
 }
 
-// Confirma fecha, carga saldo y limpia campos
-async function confirmarNuevoEvento() {
-  const fecha = document.getElementById("fechaEvento").value;
-  if (!fecha) {
-    alert("Por favor ingresa la fecha del evento.");
-    return;
-  }
+function confirmarFecha() {
+  const fecha = document.getElementById("fechaModal").value;
+  if (!fecha) { alert("Por favor ingresa la fecha."); return; }
   document.getElementById("fechaMostrar").value = fecha;
   cerrarModal();
-
-  await cargarSaldoInicial();
-
-  ["i1","i2","i3","i4","e1","e2","e3","e4","e5"].forEach(id => {
-    document.getElementById(id).value = "";
-  });
   calcular();
 }
 
-function val(id) {
-  return parseFloat(document.getElementById(id).value) || 0;
-}
+// ── CÁLCULO ──
+function val(id) { return parseFloat(document.getElementById(id).value) || 0; }
 
 function calcular() {
-  const saldoInicial = parseFloat(document.getElementById("saldoInicial").value) || 0;
+  const saldoInicial   = parseFloat(document.getElementById("saldoInicial").value) || 0;
   const i1 = val("i1"), i2 = val("i2"), i3 = val("i3"), i4 = val("i4");
   const ingresosEvento = i1 + i2 + i3 + i4;
 
   document.getElementById("ingresosEvento").innerText = ingresosEvento.toFixed(2);
-  document.getElementById("totalI").innerText = ingresosEvento.toFixed(2);
+  document.getElementById("totalI").innerText         = ingresosEvento.toFixed(2);
 
   const disponible = saldoInicial + ingresosEvento;
   document.getElementById("totalD").innerText = disponible.toFixed(2);
 
-  // Diezmo Oficina Nacional = 10% de (Ofrendas + Diezmos + Otros Ingresos)
   const diezmoNacional = (i2 + i3 + i4) * 0.10;
   document.getElementById("e1").value = diezmoNacional.toFixed(2);
 
   const e2 = val("e2"), e3 = val("e3"), e4 = val("e4"), e5 = val("e5");
-  const totalE = diezmoNacional + e2 + e3 + e4 + e5;
-  document.getElementById("totalE").innerText = totalE.toFixed(2);
-
+  const totalE   = diezmoNacional + e2 + e3 + e4 + e5;
   const saldoFinal = disponible - totalE;
+
+  document.getElementById("totalE").innerText = totalE.toFixed(2);
   document.getElementById("saldoF").innerText = saldoFinal.toFixed(2);
 }
 
-function guardarTesoreria() {
+// ── GUARDAR (NUEVO O EDICIÓN) ──
+async function guardarEvento() {
   const fecha = document.getElementById("fechaMostrar").value;
-  if (!fecha) {
-    alert("Primero crea un nuevo evento con su fecha.");
-    return;
-  }
-  const saldoInicial   = parseFloat(document.getElementById("saldoInicial").value) || 0;
-  const ingresosEvento = parseFloat(document.getElementById("ingresosEvento").innerText) || 0;
-  const disponible     = parseFloat(document.getElementById("totalD").innerText) || 0;
-  const totalEgresos   = parseFloat(document.getElementById("totalE").innerText) || 0;
-  const saldoFinal     = parseFloat(document.getElementById("saldoF").innerText) || 0;
+  if (!fecha) { alert("Ingresa la fecha del evento."); return; }
 
-  db.collection("tesoreria").add({
+  const saldoInicial   = parseFloat(document.getElementById("saldoInicial").value) || 0;
+  const i1 = val("i1"), i2 = val("i2"), i3 = val("i3"), i4 = val("i4");
+  const ingresosEvento = i1 + i2 + i3 + i4;
+  const disponible     = saldoInicial + ingresosEvento;
+  const diezmoNacional = (i2 + i3 + i4) * 0.10;
+  const e2 = val("e2"), e3 = val("e3"), e4 = val("e4"), e5 = val("e5");
+  const totalEgresos   = diezmoNacional + e2 + e3 + e4 + e5;
+  const saldoFinal     = disponible - totalEgresos;
+
+  const datos = {
     codigoCapitulo: codigoUsuario,
     fecha: new Date(fecha + "T00:00:00"),
     saldoInicial,
-    i1: val("i1"), i2: val("i2"), i3: val("i3"), i4: val("i4"),
+    i1, i2, i3, i4,
     ingresosEvento,
     disponible,
-    e1: val("e1"), e2: val("e2"), e3: val("e3"), e4: val("e4"), e5: val("e5"),
+    e1: diezmoNacional, e2, e3, e4, e5,
     totalEgresos,
     saldoFinal
-}).then(() => {
-    alert("Guardado correctamente");
-    // Limpiar campos después de guardar
-    ["i1","i2","i3","i4","e1","e2","e3","e4","e5"].forEach(id => {
-      document.getElementById(id).value = "";
+  };
+
+  if (editandoId) {
+    await db.collection("tesoreria").doc(editandoId).update(datos);
+  } else {
+    await db.collection("tesoreria").add(datos);
+  }
+
+  // Recargar y recalcular cadena
+  await cargarEventos();
+  await recalcularCadena();
+  prepararNuevoEvento();
+  limpiarFormulario();
+  alert("Guardado correctamente.");
+}
+
+// ── RECÁLCULO EN CADENA ──
+// Reordena todos los eventos por fecha y recalcula saldoInicial de cada uno
+// basándose en el saldoFinal del evento anterior
+async function recalcularCadena() {
+  if (eventosCache.length === 0) return;
+
+  const batch = db.batch();
+  let saldoAnterior = parseFloat(eventosCache[0].saldoInicial) || 0;
+
+  for (let i = 0; i < eventosCache.length; i++) {
+    const ev = eventosCache[i];
+    let saldoInicial = i === 0 ? saldoAnterior : saldoAnterior;
+
+    const ingresosEvento = (ev.i1||0) + (ev.i2||0) + (ev.i3||0) + (ev.i4||0);
+    const disponible     = saldoInicial + ingresosEvento;
+    const diezmo         = ((ev.i2||0) + (ev.i3||0) + (ev.i4||0)) * 0.10;
+    const totalEgresos   = diezmo + (ev.e2||0) + (ev.e3||0) + (ev.e4||0) + (ev.e5||0);
+    const saldoFinal     = disponible - totalEgresos;
+
+    const ref = db.collection("tesoreria").doc(ev.id);
+    batch.update(ref, {
+      saldoInicial,
+      ingresosEvento,
+      disponible,
+      e1: diezmo,
+      totalEgresos,
+      saldoFinal
     });
-    document.getElementById("fechaMostrar").value = "";
-    cargarSaldoInicial();
-  }).catch(e => alert("Error: " + e.message));
+
+    // Actualizar cache local también
+    eventosCache[i] = { ...ev, saldoInicial, ingresosEvento, disponible, e1: diezmo, totalEgresos, saldoFinal };
+
+    saldoAnterior = saldoFinal;
+  }
+
+  await batch.commit();
+  renderListaEventos();
+}
+
+// ── LIMPIAR FORMULARIO ──
+function limpiarFormulario() {
+  ["i1","i2","i3","i4","e1","e2","e3","e4","e5"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
+  document.getElementById("fechaMostrar").value = "";
+  document.getElementById("ingresosEvento").innerText = "0.00";
+  document.getElementById("totalI").innerText  = "0.00";
+  document.getElementById("totalD").innerText  = "0.00";
+  document.getElementById("totalE").innerText  = "0.00";
+  document.getElementById("saldoF").innerText  = "0.00";
 }
 </script>
 </body>
