@@ -3,38 +3,49 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="style.css">
-<!-- jsPDF para exportar PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-<!-- SheetJS para exportar Excel -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-  body { font-family: Arial, sans-serif; padding: 16px; max-width: 1100px; margin: auto; }
-  h2 { text-align: center; margin-top: 24px; }
-  .filtros { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 16px; background: #f5f5f5; padding: 14px; border-radius: 8px; }
-  .filtros label { font-size: 13px; font-weight: bold; display: flex; flex-direction: column; gap: 4px; }
-  .filtros select, .filtros input { padding: 7px 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; }
-  .btn-filtrar { padding: 8px 18px; background: #2c2c2c; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
-  .btns-descarga { display: flex; gap: 10px; margin: 12px 0; flex-wrap: wrap; }
-  .btn-pdf  { padding: 9px 20px; background: #c0392b; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-  .btn-excel{ padding: 9px 20px; background: #27ae60; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-  table { border-collapse: collapse; width: 100%; margin-bottom: 30px; font-size: 13px; }
-  th { background: #c8a400; color: #222; padding: 8px 10px; text-align: center; }
-  td { border: 1px solid #ccc; padding: 7px 10px; text-align: center; }
-  tr:nth-child(even) td { background: #f9f9f9; }
-  .fila-total td { background: #2c2c2c !important; color: #fff; font-weight: bold; }
-  .seccion-titulo { background: #2c2c2c; color: #fff; padding: 10px 16px; border-radius: 6px; margin: 20px 0 10px; font-size: 16px; letter-spacing: 2px; }
-  #msgRol { text-align:center; color:#888; margin-top: 30px; font-size: 15px; }
-  .tag-capitulo { display:inline-block; background:#eee; padding:3px 10px; border-radius:20px; font-size:12px; margin-left:8px; }
+  body { font-family: Arial, sans-serif; padding: 16px; max-width: 1200px; margin: auto; background:#f0f0f0; color:#222; }
+  h2 { text-align: center; color:#222; }
+  .panel { background:#fff; border-radius:10px; padding:16px; margin-bottom:16px; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+  .filtros { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
+  .filtros label { font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px; }
+  .filtros select { padding:7px 10px; border-radius:6px; border:1px solid #ccc; font-size:14px; background:#fff; color:#222; width:auto; }
+  .btns { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  button.bf { padding:8px 16px; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:bold; width:auto; }
+  .b-filtrar  { background:#2c2c2c; color:#fff; }
+  .b-pdf      { background:#c0392b; color:#fff; }
+  .b-excel    { background:#27ae60; color:#fff; }
+  .b-mensual  { background:#8B0000; color:#fff; }
+  table { border-collapse:collapse; width:100%; margin-bottom:20px; font-size:12px; }
+  th { background:#c8a400; color:#222; padding:7px 8px; text-align:center; }
+  td { border:1px solid #ccc; padding:6px 8px; text-align:center; }
+  tr:nth-child(even) td { background:#f9f9f9; }
+  .fila-total td { background:#2c2c2c !important; color:#fff; font-weight:bold; }
+  .seccion-titulo { background:#2c2c2c; color:#fff; padding:10px 16px; border-radius:6px; margin:16px 0 8px; font-size:15px; letter-spacing:2px; }
+  .sep { height:1px; background:#ddd; margin:20px 0; }
+  /* Modal informe mensual */
+  .modal-bg { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:999; justify-content:center; align-items:flex-start; overflow-y:auto; }
+  .modal-box { background:#fff; border-radius:12px; padding:24px; max-width:500px; width:90%; margin:30px auto; }
+  .modal-box h3 { margin-bottom:14px; }
+  .modal-box label { display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:bold; margin-bottom:10px; }
+  .modal-box select, .modal-box input { padding:8px; border-radius:6px; border:1px solid #ccc; font-size:14px; background:#fff; color:#222; width:100%; box-sizing:border-box; }
 </style>
 </head>
 <body>
-
 <h2>REPORTES</h2>
 
-<!-- Filtros solo para maestro -->
-<div id="panelFiltros" style="display:none;">
+<!-- PANEL FILTROS MAESTRO -->
+<div id="panelFiltros" style="display:none;" class="panel">
   <div class="filtros">
+    <label>Región
+      <select id="filtroRegion" onchange="filtrarZonas()"><option value="">Todas</option></select>
+    </label>
+    <label>Zona
+      <select id="filtroZona" onchange="filtrarCapitulos()"><option value="">Todas</option></select>
+    </label>
     <label>Capítulo
       <select id="filtroCapitulo"><option value="">Todos</option></select>
     </label>
@@ -52,64 +63,74 @@
         <option value="10">Noviembre</option><option value="11">Diciembre</option>
       </select>
     </label>
-    <button class="btn-filtrar" onclick="aplicarFiltros()">Filtrar</button>
+    <button class="bf b-filtrar" onclick="aplicarFiltros()">Filtrar</button>
   </div>
 </div>
 
-<!-- Botones descarga -->
-<div class="btns-descarga">
-  <button class="btn-pdf"   onclick="descargarPDF()">⬇ Descargar PDF</button>
-  <button class="btn-excel" onclick="descargarExcel()">⬇ Descargar Excel</button>
+<!-- BOTONES DESCARGA -->
+<div class="btns">
+  <button class="bf b-pdf"     onclick="descargarPDF()">⬇ PDF General</button>
+  <button class="bf b-excel"   onclick="descargarExcel()">⬇ Excel General</button>
+  <button class="bf b-mensual" id="btnMensual" onclick="abrirModalMensual()" style="display:none;">📄 Informe Mensual</button>
 </div>
 
 <!-- TESORERÍA -->
 <div class="seccion-titulo">T E S O R E R Í A</div>
-<table id="tablaTesoreria">
-  <thead>
-    <tr>
-      <th>Fecha</th>
-      <th>Capítulo</th>
-      <th>Saldo Inicial</th>
-      <th>Servicios</th>
-      <th>Ofrendas</th>
-      <th>Diezmos</th>
-      <th>Otros Ing.</th>
-      <th>Ing. Evento</th>
-      <th>Disponible</th>
-      <th>Diezmo Nac.</th>
-      <th>Of. Testimonio</th>
-      <th>Factura</th>
-      <th>Med. Becas</th>
-      <th>Otros Gastos</th>
-      <th>Total Gastos</th>
-      <th>Saldo Final</th>
-    </tr>
-  </thead>
+<div style="overflow-x:auto;">
+<table>
+  <thead><tr>
+    <th>Fecha</th><th>Capítulo</th><th>S.Inicial</th>
+    <th>Servicios</th><th>Ofrendas</th><th>Diezmos</th><th>Otros Ing.</th>
+    <th>Ing.Evento</th><th>Disponible</th>
+    <th>Diezmo Nac.</th><th>Of.Test.</th><th>Factura</th><th>Med.Becas</th><th>Otros G.</th>
+    <th>Total G.</th><th>S.Final</th>
+  </tr></thead>
   <tbody id="cuerpoTesoreria"></tbody>
   <tfoot id="totalTesoreria"></tfoot>
 </table>
+</div>
 
 <!-- SECRETARÍA -->
 <div class="seccion-titulo">S E C R E T A R Í A</div>
-<table id="tablaSecretaria">
-  <thead>
-    <tr>
-      <th>Evento No.</th>
-      <th>Fecha</th>
-      <th>Capítulo</th>
-      <th>Visitas</th>
-      <th>Miembros</th>
-      <th>Invitados</th>
-      <th>Asistencia</th>
-      <th>No. Eventos Ext.</th>
-      <th>Invitados Ext.</th>
-    </tr>
-  </thead>
+<div style="overflow-x:auto;">
+<table>
+  <thead><tr>
+    <th>Evento No.</th><th>Fecha</th><th>Capítulo</th>
+    <th>Visitas</th><th>Miembros</th><th>Invitados</th><th>Asistencia</th>
+    <th>No.Ev.Ext.</th><th>Inv.Ext.</th>
+  </tr></thead>
   <tbody id="cuerpoSecretaria"></tbody>
   <tfoot id="totalSecretaria"></tfoot>
 </table>
+</div>
 
-<p id="msgRol"></p>
+<!-- MODAL INFORME MENSUAL -->
+<div class="modal-bg" id="modalMensual">
+  <div class="modal-box">
+    <h3>📄 Informe Mensual</h3>
+    <label>Capítulo
+      <select id="selCapMensual"></select>
+    </label>
+    <label>Mes
+      <select id="selMesMensual">
+        <option value="0">Enero</option><option value="1">Febrero</option>
+        <option value="2">Marzo</option><option value="3">Abril</option>
+        <option value="4">Mayo</option><option value="5">Junio</option>
+        <option value="6">Julio</option><option value="7">Agosto</option>
+        <option value="8">Septiembre</option><option value="9">Octubre</option>
+        <option value="10">Noviembre</option><option value="11">Diciembre</option>
+      </select>
+    </label>
+    <label>Año
+      <select id="selAnioMensual"></select>
+    </label>
+    <div class="btns" style="margin-top:14px;">
+      <button class="bf b-pdf"   onclick="generarInformeMensualPDF()">⬇ PDF</button>
+      <button class="bf b-excel" onclick="generarInformeMensualExcel()">⬇ Excel</button>
+      <button class="bf" style="background:#aaa;color:#fff;" onclick="cerrarModalMensual()">Cancelar</button>
+    </div>
+  </div>
+</div>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -129,6 +150,10 @@ let rolUsuario    = "";
 let codigoUsuario = "";
 let datosTesoreria  = [];
 let datosSecretaria = [];
+let datosSedes      = {}; // { codigoCapitulo: { region, zona, nombre } }
+let estructuraFiltros = { regiones: new Set(), zonas: new Set(), caps: new Set() };
+
+const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 auth.onAuthStateChanged(async (user) => {
   if (!user) { window.location.href = "login.html"; return; }
@@ -137,35 +162,86 @@ auth.onAuthStateChanged(async (user) => {
   rolUsuario    = data.rol || "tesorero";
   codigoUsuario = data.codigoCapitulo;
 
+  await cargarSedes();
+
   if (rolUsuario === "maestro") {
     document.getElementById("panelFiltros").style.display = "block";
-    await cargarCapitulosYAnios();
+    document.getElementById("btnMensual").style.display   = "inline-block";
     await cargarTodos();
+    poblarFiltros();
+    poblarModalMensual();
   } else {
     await cargarMisDatos();
   }
 });
 
-// ── MAESTRO: carga todos los capítulos para el filtro ──
-async function cargarCapitulosYAnios() {
-  const snap = await db.collection("tesoreria").get();
-  const caps  = new Set();
-  const anios = new Set();
+// ── SEDES ──
+async function cargarSedes() {
+  const snap = await db.collection("sedes").get();
   snap.forEach(doc => {
-    const d = doc.data();
-    if (d.codigoCapitulo) caps.add(d.codigoCapitulo);
-    if (d.fecha) {
-      const fecha = d.fecha.toDate ? d.fecha.toDate() : new Date(d.fecha);
-      anios.add(fecha.getFullYear());
-    }
+    datosSedes[doc.id] = { ...doc.data(), codigo: doc.id };
   });
-  const selCap  = document.getElementById("filtroCapitulo");
-  const selAnio = document.getElementById("filtroAnio");
-  caps.forEach(c  => selCap.innerHTML  += `<option value="${c}">${c}</option>`);
-  [...anios].sort().forEach(a => selAnio.innerHTML += `<option value="${a}">${a}</option>`);
 }
 
-// ── MAESTRO: carga todos los datos ──
+// ── POBLAR FILTROS MAESTRO ──
+function poblarFiltros() {
+  const regiones = new Set();
+  const zonas    = new Set();
+  const anios    = new Set();
+
+  datosTesoreria.forEach(d => {
+    const sede = datosSedes[d.codigoCapitulo] || {};
+    if (sede.region) regiones.add(sede.region);
+    if (sede.zona)   zonas.add(sede.zona);
+    if (d.fecha) {
+      const f = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
+      anios.add(f.getFullYear());
+    }
+  });
+
+  const selReg  = document.getElementById("filtroRegion");
+  const selZona = document.getElementById("filtroZona");
+  const selAnio = document.getElementById("filtroAnio");
+  const selCap  = document.getElementById("filtroCapitulo");
+
+  [...regiones].sort().forEach(r => selReg.innerHTML  += `<option value="${r}">${r}</option>`);
+  [...zonas].sort().forEach(z    => selZona.innerHTML  += `<option value="${z}">${z}</option>`);
+  [...anios].sort().forEach(a    => selAnio.innerHTML  += `<option value="${a}">${a}</option>`);
+
+  const caps = new Set(datosTesoreria.map(d => d.codigoCapitulo));
+  [...caps].sort().forEach(c => {
+    const nombre = datosSedes[c]?.nombre || c;
+    selCap.innerHTML += `<option value="${c}">${c} - ${nombre}</option>`;
+  });
+
+  estructuraFiltros = { regiones, zonas, caps };
+}
+
+function filtrarZonas() {
+  const region = document.getElementById("filtroRegion").value;
+  const selZona = document.getElementById("filtroZona");
+  selZona.innerHTML = '<option value="">Todas</option>';
+  Object.values(datosSedes).forEach(s => {
+    if (!region || s.region === region) {
+      if (s.zona) selZona.innerHTML += `<option value="${s.zona}">${s.zona}</option>`;
+    }
+  });
+  filtrarCapitulos();
+}
+
+function filtrarCapitulos() {
+  const region = document.getElementById("filtroRegion").value;
+  const zona   = document.getElementById("filtroZona").value;
+  const selCap = document.getElementById("filtroCapitulo");
+  selCap.innerHTML = '<option value="">Todos</option>';
+  Object.entries(datosSedes).forEach(([cod, s]) => {
+    if ((!region || s.region === region) && (!zona || s.zona === zona)) {
+      selCap.innerHTML += `<option value="${cod}">${cod} - ${s.nombre || cod}</option>`;
+    }
+  });
+}
+
+// ── CARGAR DATOS ──
 async function cargarTodos() {
   const [snapT, snapS] = await Promise.all([
     db.collection("tesoreria").get(),
@@ -173,16 +249,10 @@ async function cargarTodos() {
   ]);
   datosTesoreria  = snapT.docs.map(d => ({ id: d.id, ...d.data() }));
   datosSecretaria = snapS.docs.map(d => ({ id: d.id, ...d.data() }));
-  datosTesoreria.sort((a,b) => {
-    const fa = a.fecha?.toDate ? a.fecha.toDate() : new Date(a.fecha);
-    const fb = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha);
-    return fa - fb;
-  });
-  datosSecretaria.sort((a,b) => (a.eventoNumero||0) - (b.eventoNumero||0));
+  ordenar();
   renderTablas(datosTesoreria, datosSecretaria);
 }
 
-// ── USUARIO NORMAL: solo sus datos ──
 async function cargarMisDatos() {
   const [snapT, snapS] = await Promise.all([
     db.collection("tesoreria").where("codigoCapitulo","==",codigoUsuario).get(),
@@ -190,25 +260,44 @@ async function cargarMisDatos() {
   ]);
   datosTesoreria  = snapT.docs.map(d => ({ id: d.id, ...d.data() }));
   datosSecretaria = snapS.docs.map(d => ({ id: d.id, ...d.data() }));
+  ordenar();
+  renderTablas(datosTesoreria, datosSecretaria);
+}
+
+function ordenar() {
   datosTesoreria.sort((a,b) => {
     const fa = a.fecha?.toDate ? a.fecha.toDate() : new Date(a.fecha);
     const fb = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha);
     return fa - fb;
   });
   datosSecretaria.sort((a,b) => (a.eventoNumero||0) - (b.eventoNumero||0));
-  renderTablas(datosTesoreria, datosSecretaria);
 }
 
-// ── MAESTRO: aplica filtros ──
+// ── FILTROS ──
 function aplicarFiltros() {
-  const cap  = document.getElementById("filtroCapitulo").value;
-  const anio = document.getElementById("filtroAnio").value;
-  const mes  = document.getElementById("filtroMes").value;
+  const region = document.getElementById("filtroRegion").value;
+  const zona   = document.getElementById("filtroZona").value;
+  const cap    = document.getElementById("filtroCapitulo").value;
+  const anio   = document.getElementById("filtroAnio").value;
+  const mes    = document.getElementById("filtroMes").value;
 
   let filtT = datosTesoreria;
   let filtS = datosSecretaria;
 
-  if (cap)  { filtT = filtT.filter(d => d.codigoCapitulo === cap); filtS = filtS.filter(d => d.codigoCapitulo === cap); }
+  if (region) {
+    const caps = Object.entries(datosSedes).filter(([,s]) => s.region === region).map(([c]) => c);
+    filtT = filtT.filter(d => caps.includes(d.codigoCapitulo));
+    filtS = filtS.filter(d => caps.includes(d.codigoCapitulo));
+  }
+  if (zona) {
+    const caps = Object.entries(datosSedes).filter(([,s]) => s.zona === zona).map(([c]) => c);
+    filtT = filtT.filter(d => caps.includes(d.codigoCapitulo));
+    filtS = filtS.filter(d => caps.includes(d.codigoCapitulo));
+  }
+  if (cap) {
+    filtT = filtT.filter(d => d.codigoCapitulo === cap);
+    filtS = filtS.filter(d => d.codigoCapitulo === cap);
+  }
   if (anio || mes !== "") {
     filtT = filtT.filter(d => {
       const f = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
@@ -227,8 +316,8 @@ function aplicarFiltros() {
   renderTablas(filtT, filtS);
 }
 
-// ── RENDER TABLAS ──
-function fmt(v) { return (parseFloat(v) || 0).toFixed(2); }
+// ── RENDER ──
+function fmt(v) { return (parseFloat(v)||0).toFixed(2); }
 function fmtFecha(v) {
   if (!v) return "";
   const f = v.toDate ? v.toDate() : new Date(v);
@@ -236,144 +325,424 @@ function fmtFecha(v) {
 }
 
 function renderTablas(tData, sData) {
-  // Tesorería
   const cT = document.getElementById("cuerpoTesoreria");
   cT.innerHTML = "";
-  let totales = { si:0, i1:0, i2:0, i3:0, i4:0, ie:0, dis:0, e1:0, e2:0, e3:0, e4:0, e5:0, tg:0, sf:0 };
+  let tot = { si:0, ie:0, dis:0, tg:0, sf:0 };
   tData.forEach(d => {
+    const nombre = datosSedes[d.codigoCapitulo]?.nombre || "";
     cT.innerHTML += `<tr>
       <td>${fmtFecha(d.fecha)}</td>
-      <td>${d.codigoCapitulo || ""}</td>
+      <td>${d.codigoCapitulo||""}<br><small>${nombre}</small></td>
       <td>${fmt(d.saldoInicial)}</td>
-      <td>${fmt(d.i1)}</td>
-      <td>${fmt(d.i2)}</td>
-      <td>${fmt(d.i3)}</td>
-      <td>${fmt(d.i4)}</td>
-      <td>${fmt(d.ingresosEvento)}</td>
-      <td>${fmt(d.disponible)}</td>
-      <td>${fmt(d.e1)}</td>
-      <td>${fmt(d.e2)}</td>
-      <td>${fmt(d.e3)}</td>
-      <td>${fmt(d.e4)}</td>
-      <td>${fmt(d.e5)}</td>
-      <td>${fmt(d.totalEgresos)}</td>
-      <td>${fmt(d.saldoFinal)}</td>
+      <td>${fmt(d.i1)}</td><td>${fmt(d.i2)}</td><td>${fmt(d.i3)}</td><td>${fmt(d.i4)}</td>
+      <td>${fmt(d.ingresosEvento)}</td><td>${fmt(d.disponible)}</td>
+      <td>${fmt(d.e1)}</td><td>${fmt(d.e2)}</td><td>${fmt(d.e3)}</td><td>${fmt(d.e4)}</td><td>${fmt(d.e5)}</td>
+      <td>${fmt(d.totalEgresos)}</td><td>${fmt(d.saldoFinal)}</td>
     </tr>`;
-    totales.si  += parseFloat(d.saldoInicial)||0;
-    totales.ie  += parseFloat(d.ingresosEvento)||0;
-    totales.dis += parseFloat(d.disponible)||0;
-    totales.tg  += parseFloat(d.totalEgresos)||0;
-    totales.sf  += parseFloat(d.saldoFinal)||0;
+    tot.si  += parseFloat(d.saldoInicial)||0;
+    tot.ie  += parseFloat(d.ingresosEvento)||0;
+    tot.dis += parseFloat(d.disponible)||0;
+    tot.tg  += parseFloat(d.totalEgresos)||0;
+    tot.sf  += parseFloat(d.saldoFinal)||0;
   });
   document.getElementById("totalTesoreria").innerHTML = `<tr class="fila-total">
-    <td colspan="2">TOTALES</td>
-    <td>${fmt(totales.si)}</td>
+    <td colspan="2">TOTALES</td><td>${fmt(tot.si)}</td>
     <td></td><td></td><td></td><td></td>
-    <td>${fmt(totales.ie)}</td>
-    <td>${fmt(totales.dis)}</td>
+    <td>${fmt(tot.ie)}</td><td>${fmt(tot.dis)}</td>
     <td></td><td></td><td></td><td></td><td></td>
-    <td>${fmt(totales.tg)}</td>
-    <td>${fmt(totales.sf)}</td>
+    <td>${fmt(tot.tg)}</td><td>${fmt(tot.sf)}</td>
   </tr>`;
 
-  // Secretaría
   const cS = document.getElementById("cuerpoSecretaria");
   cS.innerHTML = "";
-  let totsS = { v:0, m:0, i:0, a:0, ne:0, ie:0 };
+  let totS = { v:0, m:0, i:0, a:0, ne:0, ie:0 };
   sData.forEach(d => {
     cS.innerHTML += `<tr>
-      <td>${d.eventoNumero || ""}</td>
-      <td>${d.fecha || ""}</td>
-      <td>${d.codigoCapitulo || ""}</td>
-      <td>${d.visitas||0}</td>
-      <td>${d.miembros||0}</td>
-      <td>${d.invitados||0}</td>
-      <td>${d.asistencia||0}</td>
-      <td>${d.noEventos||0}</td>
-      <td>${d.invitadosExt||0}</td>
+      <td>${d.eventoNumero||""}</td><td>${d.fecha||""}</td><td>${d.codigoCapitulo||""}</td>
+      <td>${d.visitas||0}</td><td>${d.miembros||0}</td><td>${d.invitados||0}</td>
+      <td>${d.asistencia||0}</td><td>${d.noEventos||0}</td><td>${d.invitadosExt||0}</td>
     </tr>`;
-    totsS.v  += parseFloat(d.visitas)||0;
-    totsS.m  += parseFloat(d.miembros)||0;
-    totsS.i  += parseFloat(d.invitados)||0;
-    totsS.a  += parseFloat(d.asistencia)||0;
-    totsS.ne += parseFloat(d.noEventos)||0;
-    totsS.ie += parseFloat(d.invitadosExt)||0;
+    totS.v  += parseFloat(d.visitas)||0;   totS.m  += parseFloat(d.miembros)||0;
+    totS.i  += parseFloat(d.invitados)||0; totS.a  += parseFloat(d.asistencia)||0;
+    totS.ne += parseFloat(d.noEventos)||0; totS.ie += parseFloat(d.invitadosExt)||0;
   });
   document.getElementById("totalSecretaria").innerHTML = `<tr class="fila-total">
     <td colspan="3">TOTALES</td>
-    <td>${totsS.v}</td><td>${totsS.m}</td><td>${totsS.i}</td>
-    <td>${totsS.a}</td><td>${totsS.ne}</td><td>${totsS.ie}</td>
+    <td>${totS.v}</td><td>${totS.m}</td><td>${totS.i}</td>
+    <td>${totS.a}</td><td>${totS.ne}</td><td>${totS.ie}</td>
   </tr>`;
 }
 
-// ── DESCARGA PDF ──
-function descargarPDF() {
+// ── MODAL INFORME MENSUAL ──
+function poblarModalMensual() {
+  const selCap  = document.getElementById("selCapMensual");
+  const selAnio = document.getElementById("selAnioMensual");
+  selCap.innerHTML = "";
+  Object.entries(datosSedes).forEach(([cod, s]) => {
+    selCap.innerHTML += `<option value="${cod}">${cod} - ${s.nombre||cod}</option>`;
+  });
+  const anios = new Set(datosTesoreria.map(d => {
+    const f = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
+    return f.getFullYear();
+  }));
+  selAnio.innerHTML = "";
+  [...anios].sort().forEach(a => selAnio.innerHTML += `<option value="${a}">${a}</option>`);
+  // Mes actual por defecto
+  document.getElementById("selMesMensual").value = new Date().getMonth();
+}
+
+function abrirModalMensual() {
+  document.getElementById("modalMensual").style.display = "flex";
+}
+function cerrarModalMensual() {
+  document.getElementById("modalMensual").style.display = "none";
+}
+
+function obtenerDatosMensual() {
+  const cap  = document.getElementById("selCapMensual").value;
+  const mes  = parseInt(document.getElementById("selMesMensual").value);
+  const anio = parseInt(document.getElementById("selAnioMensual").value);
+  const sede = datosSedes[cap] || {};
+
+  const evT = datosTesoreria.filter(d => {
+    if (d.codigoCapitulo !== cap) return false;
+    const f = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
+    return f.getMonth() === mes && f.getFullYear() === anio;
+  });
+  evT.sort((a,b) => {
+    const fa = a.fecha?.toDate ? a.fecha.toDate() : new Date(a.fecha);
+    const fb = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha);
+    return fa - fb;
+  });
+
+  const evS = datosSecretaria.filter(d => {
+    if (d.codigoCapitulo !== cap) return false;
+    if (!d.fecha) return false;
+    const f = new Date(d.fecha);
+    return f.getMonth() === mes && f.getFullYear() === anio;
+  });
+  evS.sort((a,b) => (a.eventoNumero||0) - (b.eventoNumero||0));
+
+  return { cap, mes, anio, sede, evT, evS };
+}
+
+// ── INFORME MENSUAL PDF ──
+function generarInformeMensualPDF() {
+  const { cap, mes, anio, sede, evT, evS } = obtenerDatosMensual();
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "letter" });
+  const mesNombre = MESES[mes].toUpperCase();
+  const nombreCap = sede.nombre || cap;
+  const region    = sede.region || "";
+  const zona      = sede.zona   || "";
 
+  // ═══════════════════════════════
+  // PÁGINA 1: TESORERÍA
+  // ═══════════════════════════════
+  const W = 279; // ancho carta landscape mm
+
+  // Borde exterior
+  doc.setDrawColor(0); doc.setLineWidth(0.8);
+  doc.rect(5, 5, W-10, 195);
+
+  // Encabezado título
+  doc.setFillColor(200,164,0);
+  doc.rect(5, 5, W-10, 10, 'F');
+  doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(30,30,30);
+  doc.text(`INFORME DE TESORERÍA - CAPÍTULO ${nombreCap} (${cap})`, W/2, 12, {align:"center"});
+
+  // Subtítulo región/zona
+  doc.setFillColor(240,240,240);
+  doc.rect(5, 15, W-10, 7, 'F');
+  doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(80,80,80);
+  doc.text(`Región: ${region}   |   Zona: ${zona}   |   Período: ${mesNombre} ${anio}`, W/2, 20, {align:"center"});
+
+  // Columna lateral mes/año
+  doc.setFillColor(139,0,0);
+  doc.rect(W-15, 22, 10, 173, 'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(8); doc.setFont("helvetica","bold");
+  doc.text(mesNombre, W-10, 60, {angle:90, align:"center"});
+  doc.text(String(anio), W-10, 130, {angle:90, align:"center"});
+  doc.text("FIHNEC", W-10, 170, {angle:90, align:"center"});
+
+  // Tabla tesorería: columnas dinámicas por evento
+  const maxEvs = Math.min(evT.length, 6);
+  const saldoInicialMes = evT.length > 0 ? (parseFloat(evT[0].saldoInicial)||0) : 0;
+
+  // Construir cabecera
+  const headRow1 = ["CONCEPTO"];
+  const headRow2 = [""];
+  evT.slice(0, maxEvs).forEach((ev, i) => {
+    headRow1.push(`Evento #${i+1}`);
+    const f = ev.fecha?.toDate ? ev.fecha.toDate() : new Date(ev.fecha);
+    headRow2.push(`Fecha: ${f.toLocaleDateString("es-NI")}`);
+  });
+
+  const conceptos = [
+    ["SALDO INICIAL DEL MES (A)",      evT.map(e => fmt(e.saldoInicial)),   true,  false],
+    ["SALDO ANTERIOR DEL EVENTO (B)",  evT.map(e => fmt(e.saldoInicial)),   true,  false],
+    ["— INGRESOS —",                   evT.map(() => ""),                   false, true ],
+    ["SERVICIOS VENDIDOS",             evT.map(e => fmt(e.i1)),             false, false],
+    ["OFRENDAS / SOBRES",              evT.map(e => fmt(e.i2)),             false, false],
+    ["DIEZMO / MIEMBROS",              evT.map(e => fmt(e.i3)),             false, false],
+    ["OTROS INGRESOS",                 evT.map(e => fmt(e.i4)),             false, false],
+    ["INGRESOS DEL EVENTO (C)",        evT.map(e => fmt(e.ingresosEvento)), true,  false],
+    ["TOTAL INGRESOS (A+B+C)",         evT.map(e => fmt(e.disponible)),     true,  false],
+    ["— EGRESOS —",                    evT.map(() => ""),                   false, true ],
+    ["DIEZMO OFICINA NACIONAL",        evT.map(e => fmt(e.e1)),             false, false],
+    ["OFRENDA AL TESTIMONIO",          evT.map(e => fmt(e.e2)),             false, false],
+    ["FACTURA",                        evT.map(e => fmt(e.e3)),             false, false],
+    ["MEDIAS BECAS",                   evT.map(e => fmt(e.e4)),             false, false],
+    ["OTROS GASTOS",                   evT.map(e => fmt(e.e5)),             false, false],
+    ["EGRESOS DEL EVENTO (D)",         evT.map(e => fmt(e.totalEgresos)),   true,  false],
+    ["TOTAL (A+B+C-D)",                evT.map(e => fmt(e.saldoFinal)),     true,  false],
+  ];
+
+  // Solo primera fila de SALDO INICIAL usa el valor del mes
+  if (conceptos[0] && evT.length > 0) {
+    conceptos[0][1] = [fmt(saldoInicialMes), ...Array(maxEvs-1).fill("")];
+  }
+
+  const bodyRows = conceptos.map(([label, vals, bold, isHeader]) => {
+    const row = [label];
+    for (let i = 0; i < maxEvs; i++) row.push(vals[i] !== undefined ? vals[i] : "");
+    return { data: row, bold, isHeader };
+  });
+
+  doc.autoTable({
+    head: [headRow1, headRow2],
+    body: bodyRows.map(r => r.data),
+    startY: 24,
+    margin: { left: 6, right: 18 },
+    styles: { fontSize: 7.5, cellPadding: 2, halign: "center" },
+    columnStyles: { 0: { halign: "left", fontStyle: "bold", cellWidth: 55 } },
+    headStyles: { fillColor: [200,164,0], textColor: [30,30,30], fontStyle: "bold", fontSize: 7 },
+    didParseCell(data) {
+      const r = bodyRows[data.row.index];
+      if (!r) return;
+      if (r.isHeader) { data.cell.styles.fillColor = [220,220,220]; data.cell.styles.fontStyle = "bold"; }
+      if (r.bold && !r.isHeader) { data.cell.styles.fillColor = [255,240,180]; data.cell.styles.fontStyle = "bold"; }
+    }
+  });
+
+  // Resumen del mes
+  const totalIngMes  = evT.reduce((s,e) => s+(parseFloat(e.ingresosEvento)||0), 0);
+  const totalEgrMes  = evT.reduce((s,e) => s+(parseFloat(e.totalEgresos)||0),   0);
+  const saldoFinalMes= evT.length > 0 ? (parseFloat(evT[evT.length-1].saldoFinal)||0) : 0;
+
+  const yRes = doc.lastAutoTable.finalY + 5;
+  doc.autoTable({
+    head: [["RESUMEN DEL MES", ""]],
+    body: [
+      ["Saldo Inicial del Mes",  fmt(saldoInicialMes)],
+      ["Ingresos del Mes",       fmt(totalIngMes)],
+      ["Egresos del Mes",        fmt(totalEgrMes)],
+      ["Saldo Final del Mes C$", fmt(saldoFinalMes)],
+    ],
+    startY: yRes,
+    margin: { left: 6, right: W/2 },
+    styles: { fontSize: 8, cellPadding: 3 },
+    headStyles: { fillColor: [200,164,0], textColor: [30,30,30] },
+    columnStyles: { 1: { halign: "right", fontStyle: "bold" } }
+  });
+
+  // Firma zona
+  const yZona = doc.lastAutoTable.finalY + 4;
+  doc.setFillColor(200,164,0);
+  doc.rect(6, yZona, W-24, 7, 'F');
+  doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(30,30,30);
+  doc.text(`ZONA: ${zona}`, W/2, yZona+5, {align:"center"});
+
+  // Líneas de firma
+  const yFirma = yZona + 14;
+  const firmasT = ["TESORERO(A)", "PRESIDENTE DE CAPÍTULO", "REPRESENTANTE DE CAMPO"];
+  const fw = (W - 24) / 3;
+  firmasT.forEach((f, i) => {
+    const x = 6 + i * fw + fw * 0.1;
+    const xEnd = 6 + i * fw + fw * 0.9;
+    doc.setDrawColor(0); doc.setLineWidth(0.4);
+    doc.line(x, yFirma, xEnd, yFirma);
+    doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(80,80,80);
+    doc.text(f, 6 + i * fw + fw/2, yFirma + 5, {align:"center"});
+  });
+
+  // ═══════════════════════════════
+  // PÁGINA 2: SECRETARÍA
+  // ═══════════════════════════════
+  doc.addPage("letter", "landscape");
+
+  doc.setDrawColor(0); doc.setLineWidth(0.8);
+  doc.rect(5, 5, W-10, 195);
+
+  // Encabezado
+  doc.setFillColor(200,164,0);
+  doc.rect(5, 5, W-10, 10, 'F');
+  doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(30,30,30);
+  doc.text("FIHNEC, " + region + " - NICARAGUA", W/2, 12, {align:"center"});
+
+  doc.setFillColor(240,240,240);
+  doc.rect(5, 15, W-10, 7, 'F');
+  doc.setFontSize(10); doc.setFont("helvetica","bold");
+  doc.text(`CAPÍTULO ${nombreCap} (${cap})`, W/2, 20, {align:"center"});
+
+  // Columna lateral
+  doc.setFillColor(139,0,0);
+  doc.rect(W-15, 22, 10, 140, 'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(8); doc.setFont("helvetica","bold");
+  doc.text(mesNombre, W-10, 55, {angle:90, align:"center"});
+  doc.text(String(anio), W-10, 110, {angle:90, align:"center"});
+
+  // Tabla secretaría
+  const headS1 = ["Evento No.", "Fecha", "Visitas", "Miembros", "Invitados por Eventos", "Asistencia por Eventos", "No. Eventos", "Invitados"];
+  const bodyS  = evS.map(d => [
+    d.eventoNumero||"", d.fecha||"",
+    d.visitas||0, d.miembros||0, d.invitados||0, d.asistencia||0,
+    d.noEventos||0, d.invitadosExt||0
+  ]);
+  // Fila totales
+  const totS = evS.reduce((acc,d) => ({
+    v:  acc.v  + (parseFloat(d.visitas)||0),
+    m:  acc.m  + (parseFloat(d.miembros)||0),
+    i:  acc.i  + (parseFloat(d.invitados)||0),
+    a:  acc.a  + (parseFloat(d.asistencia)||0),
+    ne: acc.ne + (parseFloat(d.noEventos)||0),
+    ie: acc.ie + (parseFloat(d.invitadosExt)||0),
+  }), {v:0,m:0,i:0,a:0,ne:0,ie:0});
+
+  doc.autoTable({
+    head: [
+      [{content:"S E C R E T A R Í A", colSpan:6, styles:{halign:"center"}}, {content:"EVENTOS EXTERNOS", colSpan:2, styles:{halign:"center"}}],
+      headS1
+    ],
+    body: bodyS,
+    foot: [["Totales","", totS.v, totS.m, totS.i, totS.a, totS.ne, totS.ie]],
+    startY: 24,
+    margin: { left: 6, right: 18 },
+    styles: { fontSize: 8.5, cellPadding: 3, halign:"center" },
+    headStyles: { fillColor: [200,164,0], textColor: [30,30,30], fontStyle:"bold" },
+    footStyles: { fillColor: [200,164,0], textColor: [30,30,30], fontStyle:"bold" },
+    didParseCell(data) {
+      if (data.section === "body" && data.row.index % 2 === 0) {
+        data.cell.styles.fillColor = [235,235,235];
+      }
+    }
+  });
+
+  // Pie secretaría
+  const yPieS = doc.lastAutoTable.finalY + 4;
+  doc.setFillColor(200,164,0);
+  doc.rect(6, yPieS, W-24, 7, 'F');
+  doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(30,30,30);
+  doc.text("INFORME DE SECRETARÍA", W/2, yPieS+5, {align:"center"});
+
+  // Firmas secretaría
+  const yFirmaS = yPieS + 18;
+  const firmasS = ["SECRETARIO(A)", "PRESIDENTE DE CAPÍTULO", "REPRESENTANTE DE CAMPO"];
+  firmasS.forEach((f, i) => {
+    const x    = 6 + i * fw + fw * 0.1;
+    const xEnd = 6 + i * fw + fw * 0.9;
+    doc.setDrawColor(0); doc.setLineWidth(0.4);
+    doc.line(x, yFirmaS, xEnd, yFirmaS);
+    doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(80,80,80);
+    doc.text(f, 6 + i * fw + fw/2, yFirmaS + 5, {align:"center"});
+  });
+
+  doc.save(`informe-mensual-${cap}-${mesNombre}-${anio}.pdf`);
+  cerrarModalMensual();
+}
+
+// ── INFORME MENSUAL EXCEL ──
+function generarInformeMensualExcel() {
+  const { cap, mes, anio, sede, evT, evS } = obtenerDatosMensual();
+  const mesNombre = MESES[mes];
+  const wb = XLSX.utils.book_new();
+
+  // Hoja Tesorería
+  const headT = [["CONCEPTO", ...evT.map((_,i) => `Evento #${i+1}`)]];
+  const fechas = ["Fecha", ...evT.map(e => { const f = e.fecha?.toDate ? e.fecha.toDate() : new Date(e.fecha); return f.toLocaleDateString("es-NI"); })];
+  const rows = [
+    ["SALDO INICIAL DEL MES (A)",     evT[0] ? fmt(evT[0].saldoInicial) : "", ...Array(evT.length-1).fill("")],
+    ["SALDO ANTERIOR DEL EVENTO (B)", ...evT.map(e => fmt(e.saldoInicial))],
+    ["INGRESOS","",""],
+    ["SERVICIOS VENDIDOS",            ...evT.map(e => fmt(e.i1))],
+    ["OFRENDAS / SOBRES",             ...evT.map(e => fmt(e.i2))],
+    ["DIEZMO / MIEMBROS",             ...evT.map(e => fmt(e.i3))],
+    ["OTROS INGRESOS",                ...evT.map(e => fmt(e.i4))],
+    ["INGRESOS DEL EVENTO (C)",       ...evT.map(e => fmt(e.ingresosEvento))],
+    ["TOTAL INGRESOS (A+B+C)",        ...evT.map(e => fmt(e.disponible))],
+    ["EGRESOS","",""],
+    ["DIEZMO OFICINA NACIONAL",       ...evT.map(e => fmt(e.e1))],
+    ["OFRENDA AL TESTIMONIO",         ...evT.map(e => fmt(e.e2))],
+    ["FACTURA",                       ...evT.map(e => fmt(e.e3))],
+    ["MEDIAS BECAS",                  ...evT.map(e => fmt(e.e4))],
+    ["OTROS GASTOS",                  ...evT.map(e => fmt(e.e5))],
+    ["EGRESOS DEL EVENTO (D)",        ...evT.map(e => fmt(e.totalEgresos))],
+    ["TOTAL (A+B+C-D)",               ...evT.map(e => fmt(e.saldoFinal))],
+    [],
+    ["RESUMEN DEL MES"],
+    ["Saldo Inicial del Mes",  evT[0] ? fmt(evT[0].saldoInicial) : "0.00"],
+    ["Ingresos del Mes",       fmt(evT.reduce((s,e)=>s+(parseFloat(e.ingresosEvento)||0),0))],
+    ["Egresos del Mes",        fmt(evT.reduce((s,e)=>s+(parseFloat(e.totalEgresos)||0),  0))],
+    ["Saldo Final del Mes C$", evT.length ? fmt(evT[evT.length-1].saldoFinal) : "0.00"],
+  ];
+  const wsT = XLSX.utils.aoa_to_sheet([...headT, fechas, ...rows]);
+  XLSX.utils.book_append_sheet(wb, wsT, "Tesorería");
+
+  // Hoja Secretaría
+  const headS = [["Evento No.","Fecha","Visitas","Miembros","Invitados","Asistencia","No.Ev.Ext","Inv.Ext"]];
+  const rowsS = evS.map(d => [d.eventoNumero||"", d.fecha||"", d.visitas||0, d.miembros||0, d.invitados||0, d.asistencia||0, d.noEventos||0, d.invitadosExt||0]);
+  const wsS = XLSX.utils.aoa_to_sheet([...headS, ...rowsS]);
+  XLSX.utils.book_append_sheet(wb, wsS, "Secretaría");
+
+  XLSX.writeFile(wb, `informe-${cap}-${mesNombre}-${anio}.xlsx`);
+  cerrarModalMensual();
+}
+
+// ── DESCARGA PDF GENERAL ──
+function descargarPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:"landscape", unit:"mm", format:"letter" });
   const filtros = obtenerDescripcionFiltros();
 
-  // Tesorería
-  doc.setFontSize(14);
-  doc.text("REPORTE DE TESORERÍA - FIHNEC", 14, 15);
-  doc.setFontSize(10);
-  doc.text(filtros, 14, 22);
+  doc.setFontSize(13); doc.text("REPORTE DE TESORERÍA - FIHNEC", 14, 14);
+  doc.setFontSize(9);  doc.text(filtros, 14, 21);
 
   const headT = [["Fecha","Capítulo","S.Inicial","Servicios","Ofrendas","Diezmos","Otros Ing.","Ing.Evento","Disponible","Diezmo Nac.","Of.Test.","Factura","Med.Becas","Otros G.","Total G.","S.Final"]];
-  const rowsT = [];
-  document.querySelectorAll("#cuerpoTesoreria tr").forEach(tr => {
-    rowsT.push([...tr.querySelectorAll("td")].map(td => td.innerText));
-  });
-  const totT = [...document.querySelectorAll("#totalTesoreria td")].map(td => td.innerText);
+  const rowsT = [...document.querySelectorAll("#cuerpoTesoreria tr")].map(tr => [...tr.querySelectorAll("td")].map(td => td.innerText.replace(/\n.*/,"")));
+  const totT  = [...document.querySelectorAll("#totalTesoreria td")].map(td => td.innerText);
+  doc.autoTable({ head: headT, body: rowsT, foot:[totT], startY:26, styles:{fontSize:6.5}, headStyles:{fillColor:[200,164,0]}, footStyles:{fillColor:[44,44,44],textColor:255} });
 
-  doc.autoTable({ head: headT, body: rowsT, foot: [totT], startY: 27, styles: { fontSize: 7 }, headStyles: { fillColor: [200,164,0] }, footStyles: { fillColor: [44,44,44], textColor: 255 } });
-
-  // Secretaría
-  const y2 = doc.lastAutoTable.finalY + 12;
-  doc.setFontSize(14);
-  doc.text("REPORTE DE SECRETARÍA - FIHNEC", 14, y2);
-
+  const y2 = doc.lastAutoTable.finalY + 10;
+  doc.setFontSize(13); doc.text("REPORTE DE SECRETARÍA - FIHNEC", 14, y2);
   const headS = [["Evento","Fecha","Capítulo","Visitas","Miembros","Invitados","Asistencia","No.Ev.Ext","Inv.Ext"]];
-  const rowsS = [];
-  document.querySelectorAll("#cuerpoSecretaria tr").forEach(tr => {
-    rowsS.push([...tr.querySelectorAll("td")].map(td => td.innerText));
-  });
-  const totS = [...document.querySelectorAll("#totalSecretaria td")].map(td => td.innerText);
-
-  doc.autoTable({ head: headS, body: rowsS, foot: [totS], startY: y2 + 6, styles: { fontSize: 7 }, headStyles: { fillColor: [200,164,0] }, footStyles: { fillColor: [44,44,44], textColor: 255 } });
+  const rowsS = [...document.querySelectorAll("#cuerpoSecretaria tr")].map(tr => [...tr.querySelectorAll("td")].map(td => td.innerText));
+  const totS  = [...document.querySelectorAll("#totalSecretaria td")].map(td => td.innerText);
+  doc.autoTable({ head: headS, body: rowsS, foot:[totS], startY:y2+5, styles:{fontSize:6.5}, headStyles:{fillColor:[200,164,0]}, footStyles:{fillColor:[44,44,44],textColor:255} });
 
   doc.save("reporte-fihnec.pdf");
 }
 
-// ── DESCARGA EXCEL ──
+// ── DESCARGA EXCEL GENERAL ──
 function descargarExcel() {
   const wb = XLSX.utils.book_new();
-
-  // Hoja Tesorería
   const headT = [["Fecha","Capítulo","Saldo Inicial","Servicios","Ofrendas","Diezmos","Otros Ing.","Ing. Evento","Disponible","Diezmo Nac.","Of. Testimonio","Factura","Med. Becas","Otros Gastos","Total Gastos","Saldo Final"]];
-  const rowsT = [];
-  document.querySelectorAll("#cuerpoTesoreria tr").forEach(tr => rowsT.push([...tr.querySelectorAll("td")].map(td => td.innerText)));
-  const totT  = [[...document.querySelectorAll("#totalTesoreria td")].map(td => td.innerText).join(" | ")];
-  const wsT = XLSX.utils.aoa_to_sheet([...headT, ...rowsT]);
-  XLSX.utils.book_append_sheet(wb, wsT, "Tesorería");
-
-  // Hoja Secretaría
+  const rowsT = [...document.querySelectorAll("#cuerpoTesoreria tr")].map(tr => [...tr.querySelectorAll("td")].map(td => td.innerText.replace(/\n.*/,"")));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([...headT,...rowsT]), "Tesorería");
   const headS = [["Evento","Fecha","Capítulo","Visitas","Miembros","Invitados","Asistencia","No. Ev. Ext.","Inv. Ext."]];
-  const rowsS = [];
-  document.querySelectorAll("#cuerpoSecretaria tr").forEach(tr => rowsS.push([...tr.querySelectorAll("td")].map(td => td.innerText)));
-  const wsS = XLSX.utils.aoa_to_sheet([...headS, ...rowsS]);
-  XLSX.utils.book_append_sheet(wb, wsS, "Secretaría");
-
+  const rowsS = [...document.querySelectorAll("#cuerpoSecretaria tr")].map(tr => [...tr.querySelectorAll("td")].map(td => td.innerText));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([...headS,...rowsS]), "Secretaría");
   XLSX.writeFile(wb, "reporte-fihnec.xlsx");
 }
 
 function obtenerDescripcionFiltros() {
   if (rolUsuario !== "maestro") return `Capítulo: ${codigoUsuario}`;
-  const cap  = document.getElementById("filtroCapitulo")?.value || "Todos";
-  const anio = document.getElementById("filtroAnio")?.value     || "Todos";
-  const mes  = document.getElementById("filtroMes");
-  const mesT = mes?.options[mes.selectedIndex]?.text            || "Todos";
-  return `Capítulo: ${cap} | Año: ${anio} | Mes: ${mesT}`;
+  const region = document.getElementById("filtroRegion")?.value || "Todas";
+  const zona   = document.getElementById("filtroZona")?.value   || "Todas";
+  const cap    = document.getElementById("filtroCapitulo")?.value|| "Todos";
+  const anio   = document.getElementById("filtroAnio")?.value   || "Todos";
+  const mes    = document.getElementById("filtroMes");
+  const mesT   = mes?.options[mes.selectedIndex]?.text          || "Todos";
+  return `Región: ${region} | Zona: ${zona} | Capítulo: ${cap} | Año: ${anio} | Mes: ${mesT}`;
 }
 </script>
 </body>
