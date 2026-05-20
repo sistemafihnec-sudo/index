@@ -8,30 +8,24 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   body { font-family: Arial, sans-serif; padding: 16px; max-width: 1200px; margin: auto; background:#f0f0f0; color:#222; }
-  h2 { text-align: center; color:#222; }
+  h2 { text-align:center; color:#222; }
   .panel { background:#fff; border-radius:10px; padding:16px; margin-bottom:16px; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
   .filtros { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
   .filtros label { font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px; }
   .filtros select { padding:7px 10px; border-radius:6px; border:1px solid #ccc; font-size:14px; background:#fff; color:#222; width:auto; }
-  .btns { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
-  button.bf { padding:8px 16px; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:bold; width:auto; }
-  .b-filtrar  { background:#2c2c2c; color:#fff; }
-  .b-pdf      { background:#c0392b; color:#fff; }
-  .b-excel    { background:#27ae60; color:#fff; }
-  .b-mensual  { background:#8B0000; color:#fff; }
-  table { border-collapse:collapse; width:100%; margin-bottom:20px; font-size:12px; }
-  th { background:#c8a400; color:#222; padding:7px 8px; text-align:center; }
-  td { border:1px solid #ccc; padding:6px 8px; text-align:center; }
+  .btn { padding:8px 18px; border:none; border-radius:6px; cursor:pointer; font-size:14px; font-weight:bold; width:auto; }
+  .btn-filtrar  { background:#2c2c2c; color:#fff; }
+  .btn-pdf      { background:#c0392b; color:#fff; }
+  .btn-excel    { background:#27ae60; color:#fff; }
+  .btn-informe  { background:#c8a400; color:#222; }
+  .btns-descarga { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+  table { border-collapse:collapse; width:100%; margin-bottom:20px; font-size:13px; }
+  th { background:#c8a400; color:#222; padding:8px 10px; text-align:center; border:1px solid #aaa; }
+  td { border:1px solid #ccc; padding:7px 10px; text-align:center; }
   tr:nth-child(even) td { background:#f9f9f9; }
   .fila-total td { background:#2c2c2c !important; color:#fff; font-weight:bold; }
-  .seccion-titulo { background:#2c2c2c; color:#fff; padding:10px 16px; border-radius:6px; margin:16px 0 8px; font-size:15px; letter-spacing:2px; }
-  .sep { height:1px; background:#ddd; margin:20px 0; }
-  /* Modal informe mensual */
-  .modal-bg { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:999; justify-content:center; align-items:flex-start; overflow-y:auto; }
-  .modal-box { background:#fff; border-radius:12px; padding:24px; max-width:500px; width:90%; margin:30px auto; }
-  .modal-box h3 { margin-bottom:14px; }
-  .modal-box label { display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:bold; margin-bottom:10px; }
-  .modal-box select, .modal-box input { padding:8px; border-radius:6px; border:1px solid #ccc; font-size:14px; background:#fff; color:#222; width:100%; box-sizing:border-box; }
+  .seccion-titulo { background:#2c2c2c; color:#fff; padding:10px 16px; border-radius:6px; margin:20px 0 10px; font-size:15px; letter-spacing:2px; }
+  .separador { border:none; border-top:2px solid #c8a400; margin:24px 0; }
 </style>
 </head>
 <body>
@@ -63,15 +57,35 @@
         <option value="10">Noviembre</option><option value="11">Diciembre</option>
       </select>
     </label>
-    <button class="bf b-filtrar" onclick="aplicarFiltros()">Filtrar</button>
+    <button class="btn btn-filtrar" onclick="aplicarFiltros()">Filtrar</button>
+  </div>
+  <hr class="separador">
+  <strong>Informe Mensual por Capítulo:</strong>
+  <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; align-items:flex-end;">
+    <label style="font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px;">Capítulo
+      <select id="informeCapitulo"><option value="">Seleccionar...</option></select>
+    </label>
+    <label style="font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px;">Mes
+      <select id="informeMes">
+        <option value="0">Enero</option><option value="1">Febrero</option>
+        <option value="2">Marzo</option><option value="3">Abril</option>
+        <option value="4">Mayo</option><option value="5">Junio</option>
+        <option value="6">Julio</option><option value="7">Agosto</option>
+        <option value="8">Septiembre</option><option value="9">Octubre</option>
+        <option value="10">Noviembre</option><option value="11">Diciembre</option>
+      </select>
+    </label>
+    <label style="font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px;">Año
+      <select id="informeAnio"></select>
+    </label>
+    <button class="btn btn-informe" onclick="generarInformeMensual()">📄 Generar Informe Mensual PDF</button>
   </div>
 </div>
 
-<!-- BOTONES DESCARGA -->
-<div class="btns">
-  <button class="bf b-pdf"     onclick="descargarPDF()">⬇ PDF General</button>
-  <button class="bf b-excel"   onclick="descargarExcel()">⬇ Excel General</button>
-  <button class="bf b-mensual" id="btnMensual" onclick="abrirModalMensual()" style="display:none;">📄 Informe Mensual</button>
+<!-- BOTONES DESCARGA GENERAL -->
+<div class="btns-descarga">
+  <button class="btn btn-pdf"   onclick="descargarPDF()">⬇ Descargar PDF</button>
+  <button class="btn btn-excel" onclick="descargarExcel()">⬇ Descargar Excel</button>
 </div>
 
 <!-- TESORERÍA -->
@@ -79,11 +93,11 @@
 <div style="overflow-x:auto;">
 <table>
   <thead><tr>
-    <th>Fecha</th><th>Capítulo</th><th>S.Inicial</th>
+    <th>Fecha</th><th>Capítulo</th><th>S. Inicial</th>
     <th>Servicios</th><th>Ofrendas</th><th>Diezmos</th><th>Otros Ing.</th>
-    <th>Ing.Evento</th><th>Disponible</th>
-    <th>Diezmo Nac.</th><th>Of.Test.</th><th>Factura</th><th>Med.Becas</th><th>Otros G.</th>
-    <th>Total G.</th><th>S.Final</th>
+    <th>Ing. Evento</th><th>Disponible</th>
+    <th>Diezmo Nac.</th><th>Of. Test.</th><th>Factura</th><th>Med. Becas</th><th>Otros G.</th>
+    <th>Total G.</th><th>S. Final</th>
   </tr></thead>
   <tbody id="cuerpoTesoreria"></tbody>
   <tfoot id="totalTesoreria"></tfoot>
@@ -97,39 +111,11 @@
   <thead><tr>
     <th>Evento No.</th><th>Fecha</th><th>Capítulo</th>
     <th>Visitas</th><th>Miembros</th><th>Invitados</th><th>Asistencia</th>
-    <th>No.Ev.Ext.</th><th>Inv.Ext.</th>
+    <th>No. Ev. Ext.</th><th>Inv. Ext.</th>
   </tr></thead>
   <tbody id="cuerpoSecretaria"></tbody>
   <tfoot id="totalSecretaria"></tfoot>
 </table>
-</div>
-
-<!-- MODAL INFORME MENSUAL -->
-<div class="modal-bg" id="modalMensual">
-  <div class="modal-box">
-    <h3>📄 Informe Mensual</h3>
-    <label>Capítulo
-      <select id="selCapMensual"></select>
-    </label>
-    <label>Mes
-      <select id="selMesMensual">
-        <option value="0">Enero</option><option value="1">Febrero</option>
-        <option value="2">Marzo</option><option value="3">Abril</option>
-        <option value="4">Mayo</option><option value="5">Junio</option>
-        <option value="6">Julio</option><option value="7">Agosto</option>
-        <option value="8">Septiembre</option><option value="9">Octubre</option>
-        <option value="10">Noviembre</option><option value="11">Diciembre</option>
-      </select>
-    </label>
-    <label>Año
-      <select id="selAnioMensual"></select>
-    </label>
-    <div class="btns" style="margin-top:14px;">
-      <button class="bf b-pdf"   onclick="generarInformeMensualPDF()">⬇ PDF</button>
-      <button class="bf b-excel" onclick="generarInformeMensualExcel()">⬇ Excel</button>
-      <button class="bf" style="background:#aaa;color:#fff;" onclick="cerrarModalMensual()">Cancelar</button>
-    </div>
-  </div>
 </div>
 
 <!-- Firebase -->
@@ -148,107 +134,107 @@ const db   = firebase.firestore();
 
 let rolUsuario    = "";
 let codigoUsuario = "";
-let datosTesoreria  = [];
-let datosSecretaria = [];
-let datosSedes      = {}; // { codigoCapitulo: { region, zona, nombre } }
-let estructuraFiltros = { regiones: new Set(), zonas: new Set(), caps: new Set() };
-
-const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+let usuarioCampo  = "";
+let usuarioZona   = "";
+let usuarioRegion = "";
+let datosTesoreria = [], datosSecretaria = [];
+let sedesMap = {}; // codigoCapitulo -> {region, zona, campo, nombre}
+let todasRegiones = [], todasZonas = [], todosCapitulos = [];
 
 auth.onAuthStateChanged(async (user) => {
   if (!user) { window.location.href = "login.html"; return; }
   const docUser = await db.collection("usuarios").doc(user.uid).get();
   const data = docUser.data();
-  rolUsuario    = data.rol || "tesorero";
-  codigoUsuario = data.codigoCapitulo;
+  rolUsuario    = data.rol    || "tesorero";
+  codigoUsuario = data.codigoCapitulo || "";
+  usuarioCampo  = data.campo  || "";
+  usuarioZona   = data.zona   || "";
+  usuarioRegion = data.region || "";
 
   await cargarSedes();
 
-  if (rolUsuario === "maestro") {
+  const esSupervisor = ["maestro","regional","zonal","campo"].includes(rolUsuario);
+  if (esSupervisor) {
     document.getElementById("panelFiltros").style.display = "block";
     document.getElementById("btnMensual").style.display   = "inline-block";
+  }
+
+  if (rolUsuario === "maestro") {
     await cargarTodos();
     poblarFiltros();
-    poblarModalMensual();
+    poblarInformeSelects();
+
+  } else if (rolUsuario === "regional") {
+    await cargarPorCampo("region", usuarioRegion);
+    poblarFiltros();
+    poblarInformeSelects();
+    fijarSelect("filtroRegion", usuarioRegion);
+
+  } else if (rolUsuario === "zonal") {
+    await cargarPorCampo("zona", usuarioZona);
+    poblarFiltros();
+    poblarInformeSelects();
+    fijarSelect("filtroRegion", usuarioRegion);
+    fijarSelect("filtroZona",   usuarioZona);
+
+  } else if (rolUsuario === "campo") {
+    await cargarPorCampo("campo", usuarioCampo);
+    poblarFiltros();
+    poblarInformeSelects();
+    fijarSelect("filtroRegion", usuarioRegion);
+    fijarSelect("filtroZona",   usuarioZona);
+
   } else {
+    // tesorero: solo su capítulo, sin panel de filtros ni informe mensual
     await cargarMisDatos();
   }
 });
 
+// Fija un select a un valor y lo deshabilita
+function fijarSelect(id, valor) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  sel.innerHTML = `<option value="${valor}">${valor}</option>`;
+  sel.disabled = true;
+}
+
 // ── SEDES ──
 async function cargarSedes() {
   const snap = await db.collection("sedes").get();
-  snap.forEach(doc => {
-    datosSedes[doc.id] = { ...doc.data(), codigo: doc.id };
-  });
+  snap.forEach(doc => { sedesMap[doc.id] = doc.data(); });
 }
 
-// ── POBLAR FILTROS MAESTRO ──
-function poblarFiltros() {
-  const regiones = new Set();
-  const zonas    = new Set();
-  const anios    = new Set();
+function getRegion(cap)  { return sedesMap[cap]?.region || ""; }
+function getZona(cap)    { return sedesMap[cap]?.zona   || ""; }
+function getNombre(cap)  { return sedesMap[cap]?.nombre || cap; }
 
-  datosTesoreria.forEach(d => {
-    const sede = datosSedes[d.codigoCapitulo] || {};
-    if (sede.region) regiones.add(sede.region);
-    if (sede.zona)   zonas.add(sede.zona);
-    if (d.fecha) {
-      const f = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
-      anios.add(f.getFullYear());
-    }
-  });
+// ── CARGA DATOS ──
 
-  const selReg  = document.getElementById("filtroRegion");
-  const selZona = document.getElementById("filtroZona");
-  const selAnio = document.getElementById("filtroAnio");
-  const selCap  = document.getElementById("filtroCapitulo");
+// Carga datos filtrados por campo/zona/region para roles supervisores
+async function cargarPorCampo(clave, valor) {
+  const capsPermitidos = Object.entries(sedesMap)
+    .filter(([, s]) => s[clave] === valor)
+    .map(([cod]) => cod);
 
-  [...regiones].sort().forEach(r => selReg.innerHTML  += `<option value="${r}">${r}</option>`);
-  [...zonas].sort().forEach(z    => selZona.innerHTML  += `<option value="${z}">${z}</option>`);
-  [...anios].sort().forEach(a    => selAnio.innerHTML  += `<option value="${a}">${a}</option>`);
-
-  const caps = new Set(datosTesoreria.map(d => d.codigoCapitulo));
-  [...caps].sort().forEach(c => {
-    const nombre = datosSedes[c]?.nombre || c;
-    selCap.innerHTML += `<option value="${c}">${c} - ${nombre}</option>`;
-  });
-
-  estructuraFiltros = { regiones, zonas, caps };
+  const [snapT, snapS] = await Promise.all([
+    db.collection("tesoreria").get(),
+    db.collection("secretaria").get()
+  ]);
+  datosTesoreria  = snapT.docs.map(d => ({ id: d.id, ...d.data() }))
+    .filter(d => capsPermitidos.includes(d.codigoCapitulo));
+  datosSecretaria = snapS.docs.map(d => ({ id: d.id, ...d.data() }))
+    .filter(d => capsPermitidos.includes(d.codigoCapitulo));
+  ordenar();
+  renderTablas(datosTesoreria, datosSecretaria);
 }
 
-function filtrarZonas() {
-  const region = document.getElementById("filtroRegion").value;
-  const selZona = document.getElementById("filtroZona");
-  selZona.innerHTML = '<option value="">Todas</option>';
-  Object.values(datosSedes).forEach(s => {
-    if (!region || s.region === region) {
-      if (s.zona) selZona.innerHTML += `<option value="${s.zona}">${s.zona}</option>`;
-    }
-  });
-  filtrarCapitulos();
-}
-
-function filtrarCapitulos() {
-  const region = document.getElementById("filtroRegion").value;
-  const zona   = document.getElementById("filtroZona").value;
-  const selCap = document.getElementById("filtroCapitulo");
-  selCap.innerHTML = '<option value="">Todos</option>';
-  Object.entries(datosSedes).forEach(([cod, s]) => {
-    if ((!region || s.region === region) && (!zona || s.zona === zona)) {
-      selCap.innerHTML += `<option value="${cod}">${cod} - ${s.nombre || cod}</option>`;
-    }
-  });
-}
-
-// ── CARGAR DATOS ──
 async function cargarTodos() {
   const [snapT, snapS] = await Promise.all([
     db.collection("tesoreria").get(),
     db.collection("secretaria").get()
   ]);
-  datosTesoreria  = snapT.docs.map(d => ({ id: d.id, ...d.data() }));
-  datosSecretaria = snapS.docs.map(d => ({ id: d.id, ...d.data() }));
+  datosTesoreria  = snapT.docs.map(d => ({ id:d.id, ...d.data() }));
+  datosSecretaria = snapS.docs.map(d => ({ id:d.id, ...d.data() }));
   ordenar();
   renderTablas(datosTesoreria, datosSecretaria);
 }
@@ -258,8 +244,28 @@ async function cargarMisDatos() {
     db.collection("tesoreria").where("codigoCapitulo","==",codigoUsuario).get(),
     db.collection("secretaria").where("codigoCapitulo","==",codigoUsuario).get()
   ]);
-  datosTesoreria  = snapT.docs.map(d => ({ id: d.id, ...d.data() }));
-  datosSecretaria = snapS.docs.map(d => ({ id: d.id, ...d.data() }));
+  datosTesoreria  = snapT.docs.map(d => ({ id:d.id, ...d.data() }));
+  datosSecretaria = snapS.docs.map(d => ({ id:d.id, ...d.data() }));
+  ordenar();
+  renderTablas(datosTesoreria, datosSecretaria);
+}
+
+// Carga datos filtrados por campo/zona/region según el rol supervisor
+async function cargarPorFiltro(campoClave, valorClave) {
+  // Obtener códigos de capítulos que coinciden en sedes
+  const capsPermitidos = Object.entries(datosSedes)
+    .filter(([, s]) => s[campoClave] === valorClave)
+    .map(([cod]) => cod);
+
+  const [snapT, snapS] = await Promise.all([
+    db.collection("tesoreria").get(),
+    db.collection("secretaria").get()
+  ]);
+
+  datosTesoreria  = snapT.docs.map(d => ({ id: d.id, ...d.data() }))
+    .filter(d => capsPermitidos.includes(d.codigoCapitulo));
+  datosSecretaria = snapS.docs.map(d => ({ id: d.id, ...d.data() }))
+    .filter(d => capsPermitidos.includes(d.codigoCapitulo));
   ordenar();
   renderTablas(datosTesoreria, datosSecretaria);
 }
@@ -273,7 +279,76 @@ function ordenar() {
   datosSecretaria.sort((a,b) => (a.eventoNumero||0) - (b.eventoNumero||0));
 }
 
-// ── FILTROS ──
+// ── POBLAR FILTROS MAESTRO ──
+function poblarFiltros() {
+  const regiones = [...new Set(Object.values(sedesMap).map(s => s.region).filter(Boolean))].sort();
+  const zonas    = [...new Set(Object.values(sedesMap).map(s => s.zona).filter(Boolean))].sort();
+  const caps     = [...new Set(datosTesoreria.map(d => d.codigoCapitulo).filter(Boolean))].sort();
+  const anios    = [...new Set(datosTesoreria.map(d => {
+    const f = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
+    return f.getFullYear();
+  }))].sort();
+
+  todasRegiones = regiones; todasZonas = zonas; todosCapitulos = caps;
+
+  const selR = document.getElementById("filtroRegion");
+  regiones.forEach(r => selR.innerHTML += `<option value="${r}">${r}</option>`);
+
+  const selZ = document.getElementById("filtroZona");
+  zonas.forEach(z => selZ.innerHTML += `<option value="${z}">${z}</option>`);
+
+  const selC = document.getElementById("filtroCapitulo");
+  caps.forEach(c => selC.innerHTML += `<option value="${c}">${c} - ${getNombre(c)}</option>`);
+
+  const selA = document.getElementById("filtroAnio");
+  anios.forEach(a => selA.innerHTML += `<option value="${a}">${a}</option>`);
+}
+
+function poblarInformeSelects() {
+  const caps  = [...new Set(datosTesoreria.map(d => d.codigoCapitulo).filter(Boolean))].sort();
+  const anios = [...new Set(datosTesoreria.map(d => {
+    const f = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
+    return f.getFullYear();
+  }))].sort();
+
+  const selC = document.getElementById("informeCapitulo");
+  caps.forEach(c => selC.innerHTML += `<option value="${c}">${c} - ${getNombre(c)}</option>`);
+
+  const selA = document.getElementById("informeAnio");
+  anios.forEach(a => selA.innerHTML += `<option value="${a}" ${a == new Date().getFullYear() ? "selected":""}>${a}</option>`);
+
+  // Mes actual
+  document.getElementById("informeMes").value = new Date().getMonth();
+}
+
+// Filtra zonas al cambiar región
+function filtrarZonas() {
+  const region = document.getElementById("filtroRegion").value;
+  const selZ   = document.getElementById("filtroZona");
+  selZ.innerHTML = '<option value="">Todas</option>';
+  const zonas = region
+    ? [...new Set(Object.values(sedesMap).filter(s => s.region === region).map(s => s.zona).filter(Boolean))].sort()
+    : todasZonas;
+  zonas.forEach(z => selZ.innerHTML += `<option value="${z}">${z}</option>`);
+  filtrarCapitulos();
+}
+
+// Filtra capítulos al cambiar zona
+function filtrarCapitulos() {
+  const region = document.getElementById("filtroRegion").value;
+  const zona   = document.getElementById("filtroZona").value;
+  const selC   = document.getElementById("filtroCapitulo");
+  selC.innerHTML = '<option value="">Todos</option>';
+  const caps = todosCapitulos.filter(c => {
+    const s = sedesMap[c] || {};
+    if (region && s.region !== region) return false;
+    if (zona   && s.zona   !== zona)   return false;
+    return true;
+  });
+  caps.forEach(c => selC.innerHTML += `<option value="${c}">${c} - ${getNombre(c)}</option>`);
+}
+
+// ── FILTRAR ──
 function aplicarFiltros() {
   const region = document.getElementById("filtroRegion").value;
   const zona   = document.getElementById("filtroZona").value;
@@ -284,20 +359,10 @@ function aplicarFiltros() {
   let filtT = datosTesoreria;
   let filtS = datosSecretaria;
 
-  if (region) {
-    const caps = Object.entries(datosSedes).filter(([,s]) => s.region === region).map(([c]) => c);
-    filtT = filtT.filter(d => caps.includes(d.codigoCapitulo));
-    filtS = filtS.filter(d => caps.includes(d.codigoCapitulo));
-  }
-  if (zona) {
-    const caps = Object.entries(datosSedes).filter(([,s]) => s.zona === zona).map(([c]) => c);
-    filtT = filtT.filter(d => caps.includes(d.codigoCapitulo));
-    filtS = filtS.filter(d => caps.includes(d.codigoCapitulo));
-  }
-  if (cap) {
-    filtT = filtT.filter(d => d.codigoCapitulo === cap);
-    filtS = filtS.filter(d => d.codigoCapitulo === cap);
-  }
+  if (region) { filtT = filtT.filter(d => getRegion(d.codigoCapitulo) === region); filtS = filtS.filter(d => getRegion(d.codigoCapitulo) === region); }
+  if (zona)   { filtT = filtT.filter(d => getZona(d.codigoCapitulo)   === zona);   filtS = filtS.filter(d => getZona(d.codigoCapitulo)   === zona); }
+  if (cap)    { filtT = filtT.filter(d => d.codigoCapitulo === cap);                filtS = filtS.filter(d => d.codigoCapitulo === cap); }
+
   if (anio || mes !== "") {
     filtT = filtT.filter(d => {
       const f = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
@@ -317,8 +382,8 @@ function aplicarFiltros() {
 }
 
 // ── RENDER ──
-function fmt(v) { return (parseFloat(v)||0).toFixed(2); }
-function fmtFecha(v) {
+function fmt(v)  { return (parseFloat(v)||0).toFixed(2); }
+function fmtF(v) {
   if (!v) return "";
   const f = v.toDate ? v.toDate() : new Date(v);
   return f.toLocaleDateString("es-NI");
@@ -329,14 +394,12 @@ function renderTablas(tData, sData) {
   cT.innerHTML = "";
   let tot = { si:0, ie:0, dis:0, tg:0, sf:0 };
   tData.forEach(d => {
-    const nombre = datosSedes[d.codigoCapitulo]?.nombre || "";
     cT.innerHTML += `<tr>
-      <td>${fmtFecha(d.fecha)}</td>
-      <td>${d.codigoCapitulo||""}<br><small>${nombre}</small></td>
-      <td>${fmt(d.saldoInicial)}</td>
-      <td>${fmt(d.i1)}</td><td>${fmt(d.i2)}</td><td>${fmt(d.i3)}</td><td>${fmt(d.i4)}</td>
-      <td>${fmt(d.ingresosEvento)}</td><td>${fmt(d.disponible)}</td>
-      <td>${fmt(d.e1)}</td><td>${fmt(d.e2)}</td><td>${fmt(d.e3)}</td><td>${fmt(d.e4)}</td><td>${fmt(d.e5)}</td>
+      <td>${fmtF(d.fecha)}</td><td>${d.codigoCapitulo||""}</td>
+      <td>${fmt(d.saldoInicial)}</td><td>${fmt(d.i1)}</td><td>${fmt(d.i2)}</td>
+      <td>${fmt(d.i3)}</td><td>${fmt(d.i4)}</td><td>${fmt(d.ingresosEvento)}</td>
+      <td>${fmt(d.disponible)}</td><td>${fmt(d.e1)}</td><td>${fmt(d.e2)}</td>
+      <td>${fmt(d.e3)}</td><td>${fmt(d.e4)}</td><td>${fmt(d.e5)}</td>
       <td>${fmt(d.totalEgresos)}</td><td>${fmt(d.saldoFinal)}</td>
     </tr>`;
     tot.si  += parseFloat(d.saldoInicial)||0;
@@ -347,15 +410,13 @@ function renderTablas(tData, sData) {
   });
   document.getElementById("totalTesoreria").innerHTML = `<tr class="fila-total">
     <td colspan="2">TOTALES</td><td>${fmt(tot.si)}</td>
-    <td></td><td></td><td></td><td></td>
-    <td>${fmt(tot.ie)}</td><td>${fmt(tot.dis)}</td>
-    <td></td><td></td><td></td><td></td><td></td>
-    <td>${fmt(tot.tg)}</td><td>${fmt(tot.sf)}</td>
+    <td></td><td></td><td></td><td></td><td>${fmt(tot.ie)}</td><td>${fmt(tot.dis)}</td>
+    <td></td><td></td><td></td><td></td><td></td><td>${fmt(tot.tg)}</td><td>${fmt(tot.sf)}</td>
   </tr>`;
 
   const cS = document.getElementById("cuerpoSecretaria");
   cS.innerHTML = "";
-  let totS = { v:0, m:0, i:0, a:0, ne:0, ie:0 };
+  let totS = { v:0,m:0,i:0,a:0,ne:0,ie:0 };
   sData.forEach(d => {
     cS.innerHTML += `<tr>
       <td>${d.eventoNumero||""}</td><td>${d.fecha||""}</td><td>${d.codigoCapitulo||""}</td>
@@ -373,376 +434,296 @@ function renderTablas(tData, sData) {
   </tr>`;
 }
 
-// ── MODAL INFORME MENSUAL ──
-function poblarModalMensual() {
-  const selCap  = document.getElementById("selCapMensual");
-  const selAnio = document.getElementById("selAnioMensual");
-  selCap.innerHTML = "";
-  Object.entries(datosSedes).forEach(([cod, s]) => {
-    selCap.innerHTML += `<option value="${cod}">${cod} - ${s.nombre||cod}</option>`;
-  });
-  const anios = new Set(datosTesoreria.map(d => {
-    const f = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
-    return f.getFullYear();
-  }));
-  selAnio.innerHTML = "";
-  [...anios].sort().forEach(a => selAnio.innerHTML += `<option value="${a}">${a}</option>`);
-  // Mes actual por defecto
-  document.getElementById("selMesMensual").value = new Date().getMonth();
-}
+// ── INFORME MENSUAL PDF ──
+async function generarInformeMensual() {
+  const cap  = document.getElementById("informeCapitulo").value;
+  const mes  = parseInt(document.getElementById("informeMes").value);
+  const anio = parseInt(document.getElementById("informeAnio").value);
+  if (!cap) { alert("Selecciona un capítulo."); return; }
 
-function abrirModalMensual() {
-  document.getElementById("modalMensual").style.display = "flex";
-}
-function cerrarModalMensual() {
-  document.getElementById("modalMensual").style.display = "none";
-}
+  const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  const nomMes = meses[mes];
+  const sede = sedesMap[cap] || {};
+  const nomCapitulo = sede.nombre || cap;
+  const zona   = sede.zona   || "";
+  const region = sede.region || "";
 
-function obtenerDatosMensual() {
-  const cap  = document.getElementById("selCapMensual").value;
-  const mes  = parseInt(document.getElementById("selMesMensual").value);
-  const anio = parseInt(document.getElementById("selAnioMensual").value);
-  const sede = datosSedes[cap] || {};
-
+  // Filtrar datos del mes/año/capítulo
   const evT = datosTesoreria.filter(d => {
     if (d.codigoCapitulo !== cap) return false;
     const f = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
-    return f.getMonth() === mes && f.getFullYear() === anio;
-  });
-  evT.sort((a,b) => {
-    const fa = a.fecha?.toDate ? a.fecha.toDate() : new Date(a.fecha);
-    const fb = b.fecha?.toDate ? b.fecha.toDate() : new Date(b.fecha);
-    return fa - fb;
+    return f.getFullYear() === anio && f.getMonth() === mes;
   });
 
   const evS = datosSecretaria.filter(d => {
     if (d.codigoCapitulo !== cap) return false;
     if (!d.fecha) return false;
     const f = new Date(d.fecha);
-    return f.getMonth() === mes && f.getFullYear() === anio;
+    return f.getFullYear() === anio && f.getMonth() === mes;
   });
-  evS.sort((a,b) => (a.eventoNumero||0) - (b.eventoNumero||0));
 
-  return { cap, mes, anio, sede, evT, evS };
-}
-
-// ── INFORME MENSUAL PDF ──
-function generarInformeMensualPDF() {
-  const { cap, mes, anio, sede, evT, evS } = obtenerDatosMensual();
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "letter" });
-  const mesNombre = MESES[mes].toUpperCase();
-  const nombreCap = sede.nombre || cap;
-  const region    = sede.region || "";
-  const zona      = sede.zona   || "";
 
-  // ═══════════════════════════════
-  // PÁGINA 1: TESORERÍA
-  // ═══════════════════════════════
-  const W = 279; // ancho carta landscape mm
-
-  // Borde exterior
-  doc.setDrawColor(0); doc.setLineWidth(0.8);
-  doc.rect(5, 5, W-10, 195);
-
-  // Encabezado título
-  doc.setFillColor(200,164,0);
-  doc.rect(5, 5, W-10, 10, 'F');
-  doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(30,30,30);
-  doc.text(`INFORME DE TESORERÍA - CAPÍTULO ${nombreCap} (${cap})`, W/2, 12, {align:"center"});
-
-  // Subtítulo región/zona
-  doc.setFillColor(240,240,240);
-  doc.rect(5, 15, W-10, 7, 'F');
-  doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(80,80,80);
-  doc.text(`Región: ${region}   |   Zona: ${zona}   |   Período: ${mesNombre} ${anio}`, W/2, 20, {align:"center"});
-
-  // Columna lateral mes/año
-  doc.setFillColor(139,0,0);
-  doc.rect(W-15, 22, 10, 173, 'F');
-  doc.setTextColor(255,255,255); doc.setFontSize(8); doc.setFont("helvetica","bold");
-  doc.text(mesNombre, W-10, 60, {angle:90, align:"center"});
-  doc.text(String(anio), W-10, 130, {angle:90, align:"center"});
-  doc.text("FIHNEC", W-10, 170, {angle:90, align:"center"});
-
-  // Tabla tesorería: columnas dinámicas por evento
-  const maxEvs = Math.min(evT.length, 6);
-  const saldoInicialMes = evT.length > 0 ? (parseFloat(evT[0].saldoInicial)||0) : 0;
-
-  // Construir cabecera
-  const headRow1 = ["CONCEPTO"];
-  const headRow2 = [""];
-  evT.slice(0, maxEvs).forEach((ev, i) => {
-    headRow1.push(`Evento #${i+1}`);
-    const f = ev.fecha?.toDate ? ev.fecha.toDate() : new Date(ev.fecha);
-    headRow2.push(`Fecha: ${f.toLocaleDateString("es-NI")}`);
-  });
-
-  const conceptos = [
-    ["SALDO INICIAL DEL MES (A)",      evT.map(e => fmt(e.saldoInicial)),   true,  false],
-    ["SALDO ANTERIOR DEL EVENTO (B)",  evT.map(e => fmt(e.saldoInicial)),   true,  false],
-    ["— INGRESOS —",                   evT.map(() => ""),                   false, true ],
-    ["SERVICIOS VENDIDOS",             evT.map(e => fmt(e.i1)),             false, false],
-    ["OFRENDAS / SOBRES",              evT.map(e => fmt(e.i2)),             false, false],
-    ["DIEZMO / MIEMBROS",              evT.map(e => fmt(e.i3)),             false, false],
-    ["OTROS INGRESOS",                 evT.map(e => fmt(e.i4)),             false, false],
-    ["INGRESOS DEL EVENTO (C)",        evT.map(e => fmt(e.ingresosEvento)), true,  false],
-    ["TOTAL INGRESOS (A+B+C)",         evT.map(e => fmt(e.disponible)),     true,  false],
-    ["— EGRESOS —",                    evT.map(() => ""),                   false, true ],
-    ["DIEZMO OFICINA NACIONAL",        evT.map(e => fmt(e.e1)),             false, false],
-    ["OFRENDA AL TESTIMONIO",          evT.map(e => fmt(e.e2)),             false, false],
-    ["FACTURA",                        evT.map(e => fmt(e.e3)),             false, false],
-    ["MEDIAS BECAS",                   evT.map(e => fmt(e.e4)),             false, false],
-    ["OTROS GASTOS",                   evT.map(e => fmt(e.e5)),             false, false],
-    ["EGRESOS DEL EVENTO (D)",         evT.map(e => fmt(e.totalEgresos)),   true,  false],
-    ["TOTAL (A+B+C-D)",                evT.map(e => fmt(e.saldoFinal)),     true,  false],
-  ];
-
-  // Solo primera fila de SALDO INICIAL usa el valor del mes
-  if (conceptos[0] && evT.length > 0) {
-    conceptos[0][1] = [fmt(saldoInicialMes), ...Array(maxEvs-1).fill("")];
-  }
-
-  const bodyRows = conceptos.map(([label, vals, bold, isHeader]) => {
-    const row = [label];
-    for (let i = 0; i < maxEvs; i++) row.push(vals[i] !== undefined ? vals[i] : "");
-    return { data: row, bold, isHeader };
-  });
-
-  doc.autoTable({
-    head: [headRow1, headRow2],
-    body: bodyRows.map(r => r.data),
-    startY: 24,
-    margin: { left: 6, right: 18 },
-    styles: { fontSize: 7.5, cellPadding: 2, halign: "center" },
-    columnStyles: { 0: { halign: "left", fontStyle: "bold", cellWidth: 55 } },
-    headStyles: { fillColor: [200,164,0], textColor: [30,30,30], fontStyle: "bold", fontSize: 7 },
-    didParseCell(data) {
-      const r = bodyRows[data.row.index];
-      if (!r) return;
-      if (r.isHeader) { data.cell.styles.fillColor = [220,220,220]; data.cell.styles.fontStyle = "bold"; }
-      if (r.bold && !r.isHeader) { data.cell.styles.fillColor = [255,240,180]; data.cell.styles.fontStyle = "bold"; }
-    }
-  });
-
-  // Resumen del mes
-  const totalIngMes  = evT.reduce((s,e) => s+(parseFloat(e.ingresosEvento)||0), 0);
-  const totalEgrMes  = evT.reduce((s,e) => s+(parseFloat(e.totalEgresos)||0),   0);
-  const saldoFinalMes= evT.length > 0 ? (parseFloat(evT[evT.length-1].saldoFinal)||0) : 0;
-
-  const yRes = doc.lastAutoTable.finalY + 5;
-  doc.autoTable({
-    head: [["RESUMEN DEL MES", ""]],
-    body: [
-      ["Saldo Inicial del Mes",  fmt(saldoInicialMes)],
-      ["Ingresos del Mes",       fmt(totalIngMes)],
-      ["Egresos del Mes",        fmt(totalEgrMes)],
-      ["Saldo Final del Mes C$", fmt(saldoFinalMes)],
-    ],
-    startY: yRes,
-    margin: { left: 6, right: W/2 },
-    styles: { fontSize: 8, cellPadding: 3 },
-    headStyles: { fillColor: [200,164,0], textColor: [30,30,30] },
-    columnStyles: { 1: { halign: "right", fontStyle: "bold" } }
-  });
-
-  // Firma zona
-  const yZona = doc.lastAutoTable.finalY + 4;
-  doc.setFillColor(200,164,0);
-  doc.rect(6, yZona, W-24, 7, 'F');
-  doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(30,30,30);
-  doc.text(`ZONA: ${zona}`, W/2, yZona+5, {align:"center"});
-
-  // Líneas de firma
-  const yFirma = yZona + 14;
-  const firmasT = ["TESORERO(A)", "PRESIDENTE DE CAPÍTULO", "REPRESENTANTE DE CAMPO"];
-  const fw = (W - 24) / 3;
-  firmasT.forEach((f, i) => {
-    const x = 6 + i * fw + fw * 0.1;
-    const xEnd = 6 + i * fw + fw * 0.9;
-    doc.setDrawColor(0); doc.setLineWidth(0.4);
-    doc.line(x, yFirma, xEnd, yFirma);
-    doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(80,80,80);
-    doc.text(f, 6 + i * fw + fw/2, yFirma + 5, {align:"center"});
-  });
-
-  // ═══════════════════════════════
-  // PÁGINA 2: SECRETARÍA
-  // ═══════════════════════════════
-  doc.addPage("letter", "landscape");
-
-  doc.setDrawColor(0); doc.setLineWidth(0.8);
-  doc.rect(5, 5, W-10, 195);
+  // ── PÁGINA 1: TESORERÍA ──
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" });
+  const W = 215.9, mar = 12;
 
   // Encabezado
-  doc.setFillColor(200,164,0);
-  doc.rect(5, 5, W-10, 10, 'F');
-  doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(30,30,30);
-  doc.text("FIHNEC, " + region + " - NICARAGUA", W/2, 12, {align:"center"});
-
-  doc.setFillColor(240,240,240);
-  doc.rect(5, 15, W-10, 7, 'F');
-  doc.setFontSize(10); doc.setFont("helvetica","bold");
-  doc.text(`CAPÍTULO ${nombreCap} (${cap})`, W/2, 20, {align:"center"});
-
-  // Columna lateral
   doc.setFillColor(139,0,0);
-  doc.rect(W-15, 22, 10, 140, 'F');
-  doc.setTextColor(255,255,255); doc.setFontSize(8); doc.setFont("helvetica","bold");
-  doc.text(mesNombre, W-10, 55, {angle:90, align:"center"});
-  doc.text(String(anio), W-10, 110, {angle:90, align:"center"});
+  doc.rect(mar, 10, W - mar*2, 10, "F");
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(11); doc.setFont(undefined,"bold");
+  doc.text(`INFORME DE TESORERÍA — ${nomMes.toUpperCase()} ${anio}`, W/2, 16.5, {align:"center"});
+
+  doc.setFillColor(220,220,220);
+  doc.rect(mar, 21, W - mar*2, 8, "F");
+  doc.setTextColor(0,0,0);
+  doc.setFontSize(10);
+  doc.text(`CAPÍTULO ${nomCapitulo} (${cap})`, W/2, 26.5, {align:"center"});
+
+  doc.setFontSize(8); doc.setFont(undefined,"normal");
+  doc.text(`Zona: ${zona}   |   Región: ${region}   |   FIHNEC, NICARAGUA`, W/2, 32, {align:"center"});
+
+  // Tabla tesorería — una columna por evento
+  let startY = 36;
+  const conceptos = [
+    { label:"SALDO INICIAL DEL MES (A)",  key:"saldoInicial",  bold:true, color:[198,224,180] },
+    { label:"SALDO ANTERIOR DEL EVENTO (B)", key:"saldoInicial", bold:false, color:[198,224,180] },
+    { label:"INGRESOS", header:true },
+    { label:"SERVICIOS VENDIDOS",         key:"i1" },
+    { label:"OFRENDAS / SOBRES",          key:"i2" },
+    { label:"DIEZMO / MIEMBROS",          key:"i3" },
+    { label:"OTROS INGRESOS",             key:"i4" },
+    { label:"INGRESOS DEL EVENTO (C)",    key:"ingresosEvento", bold:true, color:[173,216,230] },
+    { label:"TOTAL INGRESOS (A+B+C)",     key:"disponible",     bold:true },
+    { label:"EGRESOS", header:true },
+    { label:"DIEZMO OFICINA NACIONAL",    key:"e1", color:[255,255,153] },
+    { label:"OFRENDA AL TESTIMONIO",      key:"e2" },
+    { label:"FACTURA",                    key:"e3" },
+    { label:"MEDIAS BECAS",               key:"e4" },
+    { label:"OTROS GASTOS",               key:"e5" },
+    { label:"EGRESOS DEL EVENTO (D)",     key:"totalEgresos",   bold:true, color:[255,200,150] },
+    { label:"TOTAL INGRESOS (A+B+C-D)",   key:"saldoFinal",     bold:true },
+  ];
+
+  const colW = Math.min(28, (W - mar*2 - 42) / Math.max(evT.length, 1));
+  const labelW = 42;
+  let y = startY;
+
+  // Encabezado columnas
+  doc.setFillColor(44,44,44); doc.setTextColor(255,255,255);
+  doc.setFontSize(7); doc.setFont(undefined,"bold");
+  doc.rect(mar, y, labelW, 7, "F");
+  doc.text("CONCEPTO", mar+2, y+4.5);
+  evT.forEach((ev, i) => {
+    const fx = mar + labelW + i*colW;
+    doc.rect(fx, y, colW, 7, "F");
+    doc.text(`Evento #${i+1}`, fx + colW/2, y+3, {align:"center"});
+    const fecha = ev.fecha?.toDate ? ev.fecha.toDate() : new Date(ev.fecha);
+    doc.setFontSize(6);
+    doc.text(`Fecha: ${fecha.toLocaleDateString("es-NI")}`, fx + colW/2, y+6.5, {align:"center"});
+    doc.setFontSize(7);
+  });
+  y += 7;
+
+  // Mes vertical
+  doc.setFillColor(139,0,0); doc.setTextColor(255,255,255);
+  doc.rect(mar - 8, startY, 7, y - startY + conceptos.length * 6 + 10, "F");
+  doc.setFontSize(9); doc.setFont(undefined,"bold");
+  doc.text(nomMes.toUpperCase(), mar - 4.5, startY + (conceptos.length * 6)/2 + 10, { angle: 90, align:"center" });
+
+  // Filas
+  conceptos.forEach(c => {
+    if (c.header) {
+      doc.setFillColor(44,44,44); doc.setTextColor(255,255,255);
+      doc.rect(mar, y, W - mar*2, 6, "F");
+      doc.setFontSize(8); doc.setFont(undefined,"bold");
+      doc.text(c.label, W/2, y+4, {align:"center"});
+      doc.setTextColor(0,0,0);
+      y += 6; return;
+    }
+    const bg = c.color || [255,255,255];
+    doc.setFillColor(...bg);
+    doc.rect(mar, y, labelW, 6, "F");
+    doc.setFontSize(7);
+    doc.setFont(undefined, c.bold ? "bold" : "normal");
+    doc.setTextColor(0,0,0);
+    doc.text(c.label, mar+2, y+4);
+
+    evT.forEach((ev, i) => {
+      const fx = mar + labelW + i*colW;
+      doc.setFillColor(...bg);
+      doc.rect(fx, y, colW, 6, "F");
+      doc.setTextColor(0,0,0);
+      const val = fmt(ev[c.key]);
+      doc.text(val, fx + colW - 2, y+4, {align:"right"});
+    });
+    doc.setDrawColor(180,180,180);
+    doc.rect(mar, y, labelW + evT.length * colW, 6);
+    y += 6;
+  });
+
+  // Año vertical derecho
+  doc.setFillColor(139,0,0); doc.setTextColor(255,255,255);
+  doc.rect(mar + labelW + evT.length * colW + 1, startY, 7, y - startY + 4, "F");
+  doc.setFontSize(9); doc.setFont(undefined,"bold");
+  doc.text(String(anio), mar + labelW + evT.length * colW + 4.5, startY + (y-startY)/2, { angle: 90, align:"center" });
+
+  // Resumen del mes
+  y += 6;
+  const saldoInicialMes = evT.length > 0 ? (parseFloat(evT[0].saldoInicial)||0) : 0;
+  const ingresosMes     = evT.reduce((s,d) => s + (parseFloat(d.ingresosEvento)||0), 0);
+  const egresosMes      = evT.reduce((s,d) => s + (parseFloat(d.totalEgresos)||0), 0);
+  const saldoFinalMes   = evT.length > 0 ? (parseFloat(evT[evT.length-1].saldoFinal)||0) : 0;
+
+  const resW = 80, resX = mar;
+  doc.setFillColor(44,44,44); doc.setTextColor(255,255,255);
+  doc.setFontSize(9); doc.setFont(undefined,"bold");
+  doc.rect(resX, y, resW, 7, "F");
+  doc.text("RESUMEN DEL MES", resX + resW/2, y+5, {align:"center"});
+  y += 7;
+
+  const resumen = [
+    ["Saldo Inicial del Mes",  fmt(saldoInicialMes)],
+    ["Ingresos del Mes",       fmt(ingresosMes)],
+    ["Egresos del Mes",        fmt(egresosMes)],
+    ["Saldo Final del Mes C$", fmt(saldoFinalMes)],
+  ];
+  resumen.forEach(([label, val], i) => {
+    doc.setFillColor(i%2===0 ? 240:255, i%2===0 ? 240:255, i%2===0 ? 240:255);
+    doc.rect(resX, y, resW, 6, "F");
+    doc.setFontSize(8); doc.setFont(undefined,"normal"); doc.setTextColor(0,0,0);
+    doc.text(label, resX+2, y+4);
+    doc.setFont(undefined,"bold");
+    doc.text(val, resX+resW-2, y+4, {align:"right"});
+    doc.setDrawColor(180,180,180);
+    doc.rect(resX, y, resW, 6);
+    y += 6;
+  });
+
+  // Zona al pie
+  y += 4;
+  doc.setFillColor(220,220,220); doc.setTextColor(0,0,0);
+  doc.rect(mar, y, W-mar*2, 7, "F");
+  doc.setFontSize(9); doc.setFont(undefined,"bold");
+  doc.text(`ZONA: ${zona.toUpperCase()}`, W/2, y+5, {align:"center"});
+  y += 12;
+
+  // Firmas tesorería
+  const firmasT = ["TESORERO/A", "PRESIDENTE DE CAPÍTULO", "REPRESENTANTE DE CAMPO"];
+  const fW = (W - mar*2) / 3;
+  firmasT.forEach((f, i) => {
+    const fx = mar + i * fW;
+    doc.setDrawColor(0,0,0); doc.setLineWidth(0.4);
+    doc.line(fx+4, y+10, fx+fW-4, y+10);
+    doc.setFontSize(8); doc.setFont(undefined,"normal"); doc.setTextColor(0,0,0);
+    doc.text(f, fx + fW/2, y+15, {align:"center"});
+  });
+
+  // ── PÁGINA 2: SECRETARÍA ──
+  doc.addPage();
+  y = 10;
+
+  doc.setFillColor(139,0,0);
+  doc.rect(mar, y, W-mar*2, 10, "F");
+  doc.setTextColor(255,255,255); doc.setFontSize(11); doc.setFont(undefined,"bold");
+  doc.text("FIHNEC, RACCN - NICARAGUA", W/2, y+6.5, {align:"center"});
+  y += 11;
+
+  doc.setFillColor(220,220,220); doc.rect(mar, y, W-mar*2, 7, "F");
+  doc.setTextColor(0,0,0); doc.setFontSize(10);
+  doc.text(`CAPÍTULO ${nomCapitulo} (${cap})`, W/2, y+5, {align:"center"});
+  y += 10;
 
   // Tabla secretaría
-  const headS1 = ["Evento No.", "Fecha", "Visitas", "Miembros", "Invitados por Eventos", "Asistencia por Eventos", "No. Eventos", "Invitados"];
-  const bodyS  = evS.map(d => [
+  const headS = [["Evento No.","Fecha","Visitas","Miembros","Invitados por Eventos","Asistencia por Eventos","No. Eventos","Invitados"]];
+  const rowsS = evS.map(d => [
     d.eventoNumero||"", d.fecha||"",
-    d.visitas||0, d.miembros||0, d.invitados||0, d.asistencia||0,
-    d.noEventos||0, d.invitadosExt||0
+    d.visitas||0, d.miembros||0, d.invitados||0,
+    d.asistencia||0, d.noEventos||0, d.invitadosExt||0
   ]);
-  // Fila totales
-  const totS = evS.reduce((acc,d) => ({
-    v:  acc.v  + (parseFloat(d.visitas)||0),
-    m:  acc.m  + (parseFloat(d.miembros)||0),
-    i:  acc.i  + (parseFloat(d.invitados)||0),
-    a:  acc.a  + (parseFloat(d.asistencia)||0),
-    ne: acc.ne + (parseFloat(d.noEventos)||0),
-    ie: acc.ie + (parseFloat(d.invitadosExt)||0),
-  }), {v:0,m:0,i:0,a:0,ne:0,ie:0});
+  const totS = ["Totales","",
+    evS.reduce((s,d)=>s+(parseFloat(d.visitas)||0),0),
+    evS.reduce((s,d)=>s+(parseFloat(d.miembros)||0),0),
+    evS.reduce((s,d)=>s+(parseFloat(d.invitados)||0),0),
+    evS.reduce((s,d)=>s+(parseFloat(d.asistencia)||0),0),
+    evS.reduce((s,d)=>s+(parseFloat(d.noEventos)||0),0),
+    evS.reduce((s,d)=>s+(parseFloat(d.invitadosExt)||0),0),
+  ];
 
+  // Encabezado doble: Secretaría / Eventos Externos
   doc.autoTable({
     head: [
-      [{content:"S E C R E T A R Í A", colSpan:6, styles:{halign:"center"}}, {content:"EVENTOS EXTERNOS", colSpan:2, styles:{halign:"center"}}],
-      headS1
+      [{content:"S E C R E T A R Í A", colSpan:6, styles:{halign:"center",fillColor:[44,44,44],textColor:255,fontStyle:"bold"}},
+       {content:"EVENTOS EXTERNOS", colSpan:2, styles:{halign:"center",fillColor:[44,44,44],textColor:255,fontStyle:"bold"}}],
+      ...headS
     ],
-    body: bodyS,
-    foot: [["Totales","", totS.v, totS.m, totS.i, totS.a, totS.ne, totS.ie]],
-    startY: 24,
-    margin: { left: 6, right: 18 },
-    styles: { fontSize: 8.5, cellPadding: 3, halign:"center" },
-    headStyles: { fillColor: [200,164,0], textColor: [30,30,30], fontStyle:"bold" },
-    footStyles: { fillColor: [200,164,0], textColor: [30,30,30], fontStyle:"bold" },
-    didParseCell(data) {
-      if (data.section === "body" && data.row.index % 2 === 0) {
-        data.cell.styles.fillColor = [235,235,235];
-      }
-    }
+    body: rowsS,
+    foot: [totS],
+    startY: y,
+    styles: { fontSize: 9, halign:"center" },
+    headStyles: { fillColor:[200,164,0], textColor:[34,34,34], fontStyle:"bold" },
+    footStyles: { fillColor:[255,255,153], textColor:[0,0,0], fontStyle:"bold" },
+    alternateRowStyles: { fillColor:[220,220,220] },
+    margin: { left:mar, right:mar },
+    didDrawPage: (data) => { y = data.cursor.y; }
   });
+
+  y = doc.lastAutoTable.finalY + 4;
 
   // Pie secretaría
-  const yPieS = doc.lastAutoTable.finalY + 4;
-  doc.setFillColor(200,164,0);
-  doc.rect(6, yPieS, W-24, 7, 'F');
-  doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(30,30,30);
-  doc.text("INFORME DE SECRETARÍA", W/2, yPieS+5, {align:"center"});
+  doc.setFillColor(220,220,220); doc.rect(mar, y, W-mar*2, 7, "F");
+  doc.setTextColor(0,0,0); doc.setFontSize(9); doc.setFont(undefined,"bold");
+  doc.text("INFORME DE SECRETARÍA", W/2, y+5, {align:"center"});
+  y += 16;
 
   // Firmas secretaría
-  const yFirmaS = yPieS + 18;
-  const firmasS = ["SECRETARIO(A)", "PRESIDENTE DE CAPÍTULO", "REPRESENTANTE DE CAMPO"];
+  const firmasS = ["SECRETARIO/A", "PRESIDENTE DE CAPÍTULO", "REPRESENTANTE DE CAMPO"];
   firmasS.forEach((f, i) => {
-    const x    = 6 + i * fw + fw * 0.1;
-    const xEnd = 6 + i * fw + fw * 0.9;
-    doc.setDrawColor(0); doc.setLineWidth(0.4);
-    doc.line(x, yFirmaS, xEnd, yFirmaS);
-    doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(80,80,80);
-    doc.text(f, 6 + i * fw + fw/2, yFirmaS + 5, {align:"center"});
+    const fx = mar + i * fW;
+    doc.setDrawColor(0,0,0); doc.setLineWidth(0.4);
+    doc.line(fx+4, y+10, fx+fW-4, y+10);
+    doc.setFontSize(8); doc.setFont(undefined,"normal"); doc.setTextColor(0,0,0);
+    doc.text(f, fx+fW/2, y+15, {align:"center"});
   });
 
-  doc.save(`informe-mensual-${cap}-${mesNombre}-${anio}.pdf`);
-  cerrarModalMensual();
-}
-
-// ── INFORME MENSUAL EXCEL ──
-function generarInformeMensualExcel() {
-  const { cap, mes, anio, sede, evT, evS } = obtenerDatosMensual();
-  const mesNombre = MESES[mes];
-  const wb = XLSX.utils.book_new();
-
-  // Hoja Tesorería
-  const headT = [["CONCEPTO", ...evT.map((_,i) => `Evento #${i+1}`)]];
-  const fechas = ["Fecha", ...evT.map(e => { const f = e.fecha?.toDate ? e.fecha.toDate() : new Date(e.fecha); return f.toLocaleDateString("es-NI"); })];
-  const rows = [
-    ["SALDO INICIAL DEL MES (A)",     evT[0] ? fmt(evT[0].saldoInicial) : "", ...Array(evT.length-1).fill("")],
-    ["SALDO ANTERIOR DEL EVENTO (B)", ...evT.map(e => fmt(e.saldoInicial))],
-    ["INGRESOS","",""],
-    ["SERVICIOS VENDIDOS",            ...evT.map(e => fmt(e.i1))],
-    ["OFRENDAS / SOBRES",             ...evT.map(e => fmt(e.i2))],
-    ["DIEZMO / MIEMBROS",             ...evT.map(e => fmt(e.i3))],
-    ["OTROS INGRESOS",                ...evT.map(e => fmt(e.i4))],
-    ["INGRESOS DEL EVENTO (C)",       ...evT.map(e => fmt(e.ingresosEvento))],
-    ["TOTAL INGRESOS (A+B+C)",        ...evT.map(e => fmt(e.disponible))],
-    ["EGRESOS","",""],
-    ["DIEZMO OFICINA NACIONAL",       ...evT.map(e => fmt(e.e1))],
-    ["OFRENDA AL TESTIMONIO",         ...evT.map(e => fmt(e.e2))],
-    ["FACTURA",                       ...evT.map(e => fmt(e.e3))],
-    ["MEDIAS BECAS",                  ...evT.map(e => fmt(e.e4))],
-    ["OTROS GASTOS",                  ...evT.map(e => fmt(e.e5))],
-    ["EGRESOS DEL EVENTO (D)",        ...evT.map(e => fmt(e.totalEgresos))],
-    ["TOTAL (A+B+C-D)",               ...evT.map(e => fmt(e.saldoFinal))],
-    [],
-    ["RESUMEN DEL MES"],
-    ["Saldo Inicial del Mes",  evT[0] ? fmt(evT[0].saldoInicial) : "0.00"],
-    ["Ingresos del Mes",       fmt(evT.reduce((s,e)=>s+(parseFloat(e.ingresosEvento)||0),0))],
-    ["Egresos del Mes",        fmt(evT.reduce((s,e)=>s+(parseFloat(e.totalEgresos)||0),  0))],
-    ["Saldo Final del Mes C$", evT.length ? fmt(evT[evT.length-1].saldoFinal) : "0.00"],
-  ];
-  const wsT = XLSX.utils.aoa_to_sheet([...headT, fechas, ...rows]);
-  XLSX.utils.book_append_sheet(wb, wsT, "Tesorería");
-
-  // Hoja Secretaría
-  const headS = [["Evento No.","Fecha","Visitas","Miembros","Invitados","Asistencia","No.Ev.Ext","Inv.Ext"]];
-  const rowsS = evS.map(d => [d.eventoNumero||"", d.fecha||"", d.visitas||0, d.miembros||0, d.invitados||0, d.asistencia||0, d.noEventos||0, d.invitadosExt||0]);
-  const wsS = XLSX.utils.aoa_to_sheet([...headS, ...rowsS]);
-  XLSX.utils.book_append_sheet(wb, wsS, "Secretaría");
-
-  XLSX.writeFile(wb, `informe-${cap}-${mesNombre}-${anio}.xlsx`);
-  cerrarModalMensual();
+  doc.save(`informe-mensual-${cap}-${nomMes}-${anio}.pdf`);
 }
 
 // ── DESCARGA PDF GENERAL ──
 function descargarPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:"landscape", unit:"mm", format:"letter" });
-  const filtros = obtenerDescripcionFiltros();
 
   doc.setFontSize(13); doc.text("REPORTE DE TESORERÍA - FIHNEC", 14, 14);
-  doc.setFontSize(9);  doc.text(filtros, 14, 21);
-
-  const headT = [["Fecha","Capítulo","S.Inicial","Servicios","Ofrendas","Diezmos","Otros Ing.","Ing.Evento","Disponible","Diezmo Nac.","Of.Test.","Factura","Med.Becas","Otros G.","Total G.","S.Final"]];
-  const rowsT = [...document.querySelectorAll("#cuerpoTesoreria tr")].map(tr => [...tr.querySelectorAll("td")].map(td => td.innerText.replace(/\n.*/,"")));
-  const totT  = [...document.querySelectorAll("#totalTesoreria td")].map(td => td.innerText);
-  doc.autoTable({ head: headT, body: rowsT, foot:[totT], startY:26, styles:{fontSize:6.5}, headStyles:{fillColor:[200,164,0]}, footStyles:{fillColor:[44,44,44],textColor:255} });
+  doc.autoTable({
+    head:[["Fecha","Capítulo","S.Inicial","Servicios","Ofrendas","Diezmos","Otros Ing.","Ing.Evento","Disponible","Diezmo Nac.","Of.Test.","Factura","Med.Becas","Otros G.","Total G.","S.Final"]],
+    body: [...document.querySelectorAll("#cuerpoTesoreria tr")].map(tr=>[...tr.querySelectorAll("td")].map(td=>td.innerText)),
+    foot: [[...document.querySelectorAll("#totalTesoreria td")].map(td=>td.innerText)],
+    startY:18, styles:{fontSize:6}, headStyles:{fillColor:[200,164,0]}, footStyles:{fillColor:[44,44,44],textColor:255}
+  });
 
   const y2 = doc.lastAutoTable.finalY + 10;
   doc.setFontSize(13); doc.text("REPORTE DE SECRETARÍA - FIHNEC", 14, y2);
-  const headS = [["Evento","Fecha","Capítulo","Visitas","Miembros","Invitados","Asistencia","No.Ev.Ext","Inv.Ext"]];
-  const rowsS = [...document.querySelectorAll("#cuerpoSecretaria tr")].map(tr => [...tr.querySelectorAll("td")].map(td => td.innerText));
-  const totS  = [...document.querySelectorAll("#totalSecretaria td")].map(td => td.innerText);
-  doc.autoTable({ head: headS, body: rowsS, foot:[totS], startY:y2+5, styles:{fontSize:6.5}, headStyles:{fillColor:[200,164,0]}, footStyles:{fillColor:[44,44,44],textColor:255} });
-
+  doc.autoTable({
+    head:[["Evento","Fecha","Capítulo","Visitas","Miembros","Invitados","Asistencia","No.Ev.Ext","Inv.Ext"]],
+    body: [...document.querySelectorAll("#cuerpoSecretaria tr")].map(tr=>[...tr.querySelectorAll("td")].map(td=>td.innerText)),
+    foot: [[...document.querySelectorAll("#totalSecretaria td")].map(td=>td.innerText)],
+    startY:y2+4, styles:{fontSize:7}, headStyles:{fillColor:[200,164,0]}, footStyles:{fillColor:[44,44,44],textColor:255}
+  });
   doc.save("reporte-fihnec.pdf");
 }
 
 // ── DESCARGA EXCEL GENERAL ──
 function descargarExcel() {
   const wb = XLSX.utils.book_new();
-  const headT = [["Fecha","Capítulo","Saldo Inicial","Servicios","Ofrendas","Diezmos","Otros Ing.","Ing. Evento","Disponible","Diezmo Nac.","Of. Testimonio","Factura","Med. Becas","Otros Gastos","Total Gastos","Saldo Final"]];
-  const rowsT = [...document.querySelectorAll("#cuerpoTesoreria tr")].map(tr => [...tr.querySelectorAll("td")].map(td => td.innerText.replace(/\n.*/,"")));
+  const headT=[["Fecha","Capítulo","Saldo Inicial","Servicios","Ofrendas","Diezmos","Otros Ing.","Ing. Evento","Disponible","Diezmo Nac.","Of. Testimonio","Factura","Med. Becas","Otros Gastos","Total Gastos","Saldo Final"]];
+  const rowsT=[...document.querySelectorAll("#cuerpoTesoreria tr")].map(tr=>[...tr.querySelectorAll("td")].map(td=>td.innerText));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([...headT,...rowsT]), "Tesorería");
-  const headS = [["Evento","Fecha","Capítulo","Visitas","Miembros","Invitados","Asistencia","No. Ev. Ext.","Inv. Ext."]];
-  const rowsS = [...document.querySelectorAll("#cuerpoSecretaria tr")].map(tr => [...tr.querySelectorAll("td")].map(td => td.innerText));
+  const headS=[["Evento","Fecha","Capítulo","Visitas","Miembros","Invitados","Asistencia","No. Ev. Ext.","Inv. Ext."]];
+  const rowsS=[...document.querySelectorAll("#cuerpoSecretaria tr")].map(tr=>[...tr.querySelectorAll("td")].map(td=>td.innerText));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([...headS,...rowsS]), "Secretaría");
   XLSX.writeFile(wb, "reporte-fihnec.xlsx");
-}
-
-function obtenerDescripcionFiltros() {
-  if (rolUsuario !== "maestro") return `Capítulo: ${codigoUsuario}`;
-  const region = document.getElementById("filtroRegion")?.value || "Todas";
-  const zona   = document.getElementById("filtroZona")?.value   || "Todas";
-  const cap    = document.getElementById("filtroCapitulo")?.value|| "Todos";
-  const anio   = document.getElementById("filtroAnio")?.value   || "Todos";
-  const mes    = document.getElementById("filtroMes");
-  const mesT   = mes?.options[mes.selectedIndex]?.text          || "Todos";
-  return `Región: ${region} | Zona: ${zona} | Capítulo: ${cap} | Año: ${anio} | Mes: ${mesT}`;
 }
 </script>
 </body>
