@@ -26,12 +26,13 @@
   .fila-total td { background:#2c2c2c !important; color:#fff; font-weight:bold; }
   .seccion-titulo { background:#2c2c2c; color:#fff; padding:10px 16px; border-radius:6px; margin:20px 0 10px; font-size:15px; letter-spacing:2px; }
   .separador { border:none; border-top:2px solid #c8a400; margin:24px 0; }
+  #mensajeCargando { text-align:center; padding:30px; font-size:16px; color:#666; }
 </style>
 </head>
 <body>
 <h2>REPORTES</h2>
 
-<!-- PANEL FILTROS MAESTRO -->
+<!-- PANEL FILTROS — solo para roles supervisores -->
 <div id="panelFiltros" style="display:none;" class="panel">
   <div class="filtros">
     <label>Región
@@ -59,26 +60,30 @@
     </label>
     <button class="btn btn-filtrar" onclick="aplicarFiltros()">Filtrar</button>
   </div>
-  <hr class="separador">
-  <strong>Informe Mensual por Capítulo:</strong>
-  <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; align-items:flex-end;">
-    <label style="font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px;">Capítulo
-      <select id="informeCapitulo"><option value="">Seleccionar...</option></select>
-    </label>
-    <label style="font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px;">Mes
-      <select id="informeMes">
-        <option value="0">Enero</option><option value="1">Febrero</option>
-        <option value="2">Marzo</option><option value="3">Abril</option>
-        <option value="4">Mayo</option><option value="5">Junio</option>
-        <option value="6">Julio</option><option value="7">Agosto</option>
-        <option value="8">Septiembre</option><option value="9">Octubre</option>
-        <option value="10">Noviembre</option><option value="11">Diciembre</option>
-      </select>
-    </label>
-    <label style="font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px;">Año
-      <select id="informeAnio"></select>
-    </label>
-    <button class="btn btn-informe" onclick="generarInformeMensual()">📄 Generar Informe Mensual PDF</button>
+
+  <!-- Informe mensual — solo maestro, regional, zonal, campo -->
+  <div id="panelInformeMensual" style="display:none;">
+    <hr class="separador">
+    <strong>Informe Mensual por Capítulo:</strong>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; align-items:flex-end;">
+      <label style="font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px;">Capítulo
+        <select id="informeCapitulo"><option value="">Seleccionar...</option></select>
+      </label>
+      <label style="font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px;">Mes
+        <select id="informeMes">
+          <option value="0">Enero</option><option value="1">Febrero</option>
+          <option value="2">Marzo</option><option value="3">Abril</option>
+          <option value="4">Mayo</option><option value="5">Junio</option>
+          <option value="6">Julio</option><option value="7">Agosto</option>
+          <option value="8">Septiembre</option><option value="9">Octubre</option>
+          <option value="10">Noviembre</option><option value="11">Diciembre</option>
+        </select>
+      </label>
+      <label style="font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px;">Año
+        <select id="informeAnio"></select>
+      </label>
+      <button class="btn btn-informe" onclick="generarInformeMensual()">📄 Generar Informe Mensual PDF</button>
+    </div>
   </div>
 </div>
 
@@ -87,6 +92,8 @@
   <button class="btn btn-pdf"   onclick="descargarPDF()">⬇ Descargar PDF</button>
   <button class="btn btn-excel" onclick="descargarExcel()">⬇ Descargar Excel</button>
 </div>
+
+<div id="mensajeCargando">Cargando datos...</div>
 
 <!-- TESORERÍA -->
 <div class="seccion-titulo">T E S O R E R Í A</div>
@@ -138,62 +145,78 @@ let usuarioCampo  = "";
 let usuarioZona   = "";
 let usuarioRegion = "";
 let datosTesoreria = [], datosSecretaria = [];
-let sedesMap = {}; // codigoCapitulo -> {region, zona, campo, nombre}
+let sedesMap = {};
 let todasRegiones = [], todasZonas = [], todosCapitulos = [];
+
+// Roles que solo consultan (no ingresan datos, no tienen codigoCapitulo)
+const ROLES_SUPERVISOR = ["maestro", "regional", "zonal", "campo"];
 
 auth.onAuthStateChanged(async (user) => {
   if (!user) { window.location.href = "login.html"; return; }
-  const docUser = await db.collection("usuarios").doc(user.uid).get();
-  const data = docUser.data();
-  rolUsuario    = data.rol    || "tesorero";
-  codigoUsuario = data.codigoCapitulo || "";
-  usuarioCampo  = data.campo  || "";
-  usuarioZona   = data.zona   || "";
-  usuarioRegion = data.region || "";
 
-  await cargarSedes();
+  try {
+    const docUser = await db.collection("usuarios").doc(user.uid).get();
+    const data = docUser.data();
+    rolUsuario    = data.rol    || "tesorero";
+    codigoUsuario = data.codigoCapitulo || ""; // solo tesoreros tienen esto
+    usuarioCampo  = data.campo  || "";
+    usuarioZona   = data.zona   || "";
+    usuarioRegion = data.region || "";
 
-  const esSupervisor = ["maestro","regional","zonal","campo"].includes(rolUsuario);
-  if (esSupervisor) {
-    document.getElementById("panelFiltros").style.display = "block";
-    document.getElementById("btnMensual").style.display   = "inline-block";
-  }
+    await cargarSedes();
 
-  if (rolUsuario === "maestro") {
-    await cargarTodos();
-    poblarFiltros();
-    poblarInformeSelects();
+    const esSupervisor = ROLES_SUPERVISOR.includes(rolUsuario);
 
-  } else if (rolUsuario === "regional") {
-    await cargarPorCampo("region", usuarioRegion);
-    poblarFiltros();
-    poblarInformeSelects();
-    fijarSelect("filtroRegion", usuarioRegion);
+    if (esSupervisor) {
+      // Mostrar panel de filtros
+      document.getElementById("panelFiltros").style.display = "block";
+      // Mostrar informe mensual solo para roles que pueden ver capítulos individuales
+      document.getElementById("panelInformeMensual").style.display = "block";
+    }
 
-  } else if (rolUsuario === "zonal") {
-    await cargarPorCampo("zona", usuarioZona);
-    poblarFiltros();
-    poblarInformeSelects();
-    fijarSelect("filtroRegion", usuarioRegion);
-    fijarSelect("filtroZona",   usuarioZona);
+    // Cargar datos según rol
+    if (rolUsuario === "maestro") {
+      await cargarTodos();
+      poblarFiltros();
+      poblarInformeSelects();
 
-  } else if (rolUsuario === "campo") {
-    await cargarPorCampo("campo", usuarioCampo);
-    poblarFiltros();
-    poblarInformeSelects();
-    fijarSelect("filtroRegion", usuarioRegion);
-    fijarSelect("filtroZona",   usuarioZona);
+    } else if (rolUsuario === "regional") {
+      await cargarPorCampo("region", usuarioRegion);
+      poblarFiltros();
+      poblarInformeSelects();
+      fijarSelect("filtroRegion", usuarioRegion);
 
-  } else {
-    // tesorero: solo su capítulo, sin panel de filtros ni informe mensual
-    await cargarMisDatos();
+    } else if (rolUsuario === "zonal") {
+      await cargarPorCampo("zona", usuarioZona);
+      poblarFiltros();
+      poblarInformeSelects();
+      fijarSelect("filtroRegion", usuarioRegion);
+      fijarSelect("filtroZona",   usuarioZona);
+
+    } else if (rolUsuario === "campo") {
+      await cargarPorCampo("campo", usuarioCampo);
+      poblarFiltros();
+      poblarInformeSelects();
+      fijarSelect("filtroRegion", usuarioRegion);
+      fijarSelect("filtroZona",   usuarioZona);
+
+    } else {
+      // tesorero: solo su capítulo, sin panel de filtros ni informe mensual
+      await cargarMisDatos();
+    }
+
+    document.getElementById("mensajeCargando").style.display = "none";
+
+  } catch (err) {
+    console.error("Error al cargar datos:", err);
+    document.getElementById("mensajeCargando").textContent = "Error al cargar datos. Verifica tu conexión.";
   }
 });
 
 // Fija un select a un valor y lo deshabilita
 function fijarSelect(id, valor) {
   const sel = document.getElementById(id);
-  if (!sel) return;
+  if (!sel || !valor) return;
   sel.innerHTML = `<option value="${valor}">${valor}</option>`;
   sel.disabled = true;
 }
@@ -210,7 +233,17 @@ function getNombre(cap)  { return sedesMap[cap]?.nombre || cap; }
 
 // ── CARGA DATOS ──
 
-// Carga datos filtrados por campo/zona/region para roles supervisores
+async function cargarTodos() {
+  const [snapT, snapS] = await Promise.all([
+    db.collection("tesoreria").get(),
+    db.collection("secretaria").get()
+  ]);
+  datosTesoreria  = snapT.docs.map(d => ({ id:d.id, ...d.data() }));
+  datosSecretaria = snapS.docs.map(d => ({ id:d.id, ...d.data() }));
+  ordenar();
+  renderTablas(datosTesoreria, datosSecretaria);
+}
+
 async function cargarPorCampo(clave, valor) {
   const capsPermitidos = Object.entries(sedesMap)
     .filter(([, s]) => s[clave] === valor)
@@ -228,44 +261,17 @@ async function cargarPorCampo(clave, valor) {
   renderTablas(datosTesoreria, datosSecretaria);
 }
 
-async function cargarTodos() {
-  const [snapT, snapS] = await Promise.all([
-    db.collection("tesoreria").get(),
-    db.collection("secretaria").get()
-  ]);
-  datosTesoreria  = snapT.docs.map(d => ({ id:d.id, ...d.data() }));
-  datosSecretaria = snapS.docs.map(d => ({ id:d.id, ...d.data() }));
-  ordenar();
-  renderTablas(datosTesoreria, datosSecretaria);
-}
-
 async function cargarMisDatos() {
+  if (!codigoUsuario) {
+    renderTablas([], []);
+    return;
+  }
   const [snapT, snapS] = await Promise.all([
     db.collection("tesoreria").where("codigoCapitulo","==",codigoUsuario).get(),
     db.collection("secretaria").where("codigoCapitulo","==",codigoUsuario).get()
   ]);
   datosTesoreria  = snapT.docs.map(d => ({ id:d.id, ...d.data() }));
   datosSecretaria = snapS.docs.map(d => ({ id:d.id, ...d.data() }));
-  ordenar();
-  renderTablas(datosTesoreria, datosSecretaria);
-}
-
-// Carga datos filtrados por campo/zona/region según el rol supervisor
-async function cargarPorFiltro(campoClave, valorClave) {
-  // Obtener códigos de capítulos que coinciden en sedes
-  const capsPermitidos = Object.entries(datosSedes)
-    .filter(([, s]) => s[campoClave] === valorClave)
-    .map(([cod]) => cod);
-
-  const [snapT, snapS] = await Promise.all([
-    db.collection("tesoreria").get(),
-    db.collection("secretaria").get()
-  ]);
-
-  datosTesoreria  = snapT.docs.map(d => ({ id: d.id, ...d.data() }))
-    .filter(d => capsPermitidos.includes(d.codigoCapitulo));
-  datosSecretaria = snapS.docs.map(d => ({ id: d.id, ...d.data() }))
-    .filter(d => capsPermitidos.includes(d.codigoCapitulo));
   ordenar();
   renderTablas(datosTesoreria, datosSecretaria);
 }
@@ -279,7 +285,7 @@ function ordenar() {
   datosSecretaria.sort((a,b) => (a.eventoNumero||0) - (b.eventoNumero||0));
 }
 
-// ── POBLAR FILTROS MAESTRO ──
+// ── POBLAR FILTROS ──
 function poblarFiltros() {
   const regiones = [...new Set(Object.values(sedesMap).map(s => s.region).filter(Boolean))].sort();
   const zonas    = [...new Set(Object.values(sedesMap).map(s => s.zona).filter(Boolean))].sort();
@@ -287,7 +293,7 @@ function poblarFiltros() {
   const anios    = [...new Set(datosTesoreria.map(d => {
     const f = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
     return f.getFullYear();
-  }))].sort();
+  }))].filter(a => !isNaN(a)).sort();
 
   todasRegiones = regiones; todasZonas = zonas; todosCapitulos = caps;
 
@@ -309,7 +315,7 @@ function poblarInformeSelects() {
   const anios = [...new Set(datosTesoreria.map(d => {
     const f = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
     return f.getFullYear();
-  }))].sort();
+  }))].filter(a => !isNaN(a)).sort();
 
   const selC = document.getElementById("informeCapitulo");
   caps.forEach(c => selC.innerHTML += `<option value="${c}">${c} - ${getNombre(c)}</option>`);
@@ -317,11 +323,9 @@ function poblarInformeSelects() {
   const selA = document.getElementById("informeAnio");
   anios.forEach(a => selA.innerHTML += `<option value="${a}" ${a == new Date().getFullYear() ? "selected":""}>${a}</option>`);
 
-  // Mes actual
   document.getElementById("informeMes").value = new Date().getMonth();
 }
 
-// Filtra zonas al cambiar región
 function filtrarZonas() {
   const region = document.getElementById("filtroRegion").value;
   const selZ   = document.getElementById("filtroZona");
@@ -333,7 +337,6 @@ function filtrarZonas() {
   filtrarCapitulos();
 }
 
-// Filtra capítulos al cambiar zona
 function filtrarCapitulos() {
   const region = document.getElementById("filtroRegion").value;
   const zona   = document.getElementById("filtroZona").value;
@@ -408,11 +411,11 @@ function renderTablas(tData, sData) {
     tot.tg  += parseFloat(d.totalEgresos)||0;
     tot.sf  += parseFloat(d.saldoFinal)||0;
   });
-  document.getElementById("totalTesoreria").innerHTML = `<tr class="fila-total">
+  document.getElementById("totalTesoreria").innerHTML = tData.length > 0 ? `<tr class="fila-total">
     <td colspan="2">TOTALES</td><td>${fmt(tot.si)}</td>
     <td></td><td></td><td></td><td></td><td>${fmt(tot.ie)}</td><td>${fmt(tot.dis)}</td>
     <td></td><td></td><td></td><td></td><td></td><td>${fmt(tot.tg)}</td><td>${fmt(tot.sf)}</td>
-  </tr>`;
+  </tr>` : "";
 
   const cS = document.getElementById("cuerpoSecretaria");
   cS.innerHTML = "";
@@ -427,11 +430,11 @@ function renderTablas(tData, sData) {
     totS.i  += parseFloat(d.invitados)||0; totS.a  += parseFloat(d.asistencia)||0;
     totS.ne += parseFloat(d.noEventos)||0; totS.ie += parseFloat(d.invitadosExt)||0;
   });
-  document.getElementById("totalSecretaria").innerHTML = `<tr class="fila-total">
+  document.getElementById("totalSecretaria").innerHTML = sData.length > 0 ? `<tr class="fila-total">
     <td colspan="3">TOTALES</td>
     <td>${totS.v}</td><td>${totS.m}</td><td>${totS.i}</td>
     <td>${totS.a}</td><td>${totS.ne}</td><td>${totS.ie}</td>
-  </tr>`;
+  </tr>` : "";
 }
 
 // ── INFORME MENSUAL PDF ──
@@ -448,7 +451,6 @@ async function generarInformeMensual() {
   const zona   = sede.zona   || "";
   const region = sede.region || "";
 
-  // Filtrar datos del mes/año/capítulo
   const evT = datosTesoreria.filter(d => {
     if (d.codigoCapitulo !== cap) return false;
     const f = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
@@ -463,12 +465,9 @@ async function generarInformeMensual() {
   });
 
   const { jsPDF } = window.jspdf;
-
-  // ── PÁGINA 1: TESORERÍA ──
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" });
   const W = 215.9, mar = 12;
 
-  // Encabezado
   doc.setFillColor(139,0,0);
   doc.rect(mar, 10, W - mar*2, 10, "F");
   doc.setTextColor(255,255,255);
@@ -484,33 +483,31 @@ async function generarInformeMensual() {
   doc.setFontSize(8); doc.setFont(undefined,"normal");
   doc.text(`Zona: ${zona}   |   Región: ${region}   |   FIHNEC, NICARAGUA`, W/2, 32, {align:"center"});
 
-  // Tabla tesorería — una columna por evento
   let startY = 36;
   const conceptos = [
-    { label:"SALDO INICIAL DEL MES (A)",  key:"saldoInicial",  bold:true, color:[198,224,180] },
-    { label:"SALDO ANTERIOR DEL EVENTO (B)", key:"saldoInicial", bold:false, color:[198,224,180] },
+    { label:"SALDO INICIAL DEL MES (A)",     key:"saldoInicial",   bold:true, color:[198,224,180] },
+    { label:"SALDO ANTERIOR DEL EVENTO (B)",  key:"saldoInicial",   bold:false, color:[198,224,180] },
     { label:"INGRESOS", header:true },
-    { label:"SERVICIOS VENDIDOS",         key:"i1" },
-    { label:"OFRENDAS / SOBRES",          key:"i2" },
-    { label:"DIEZMO / MIEMBROS",          key:"i3" },
-    { label:"OTROS INGRESOS",             key:"i4" },
-    { label:"INGRESOS DEL EVENTO (C)",    key:"ingresosEvento", bold:true, color:[173,216,230] },
-    { label:"TOTAL INGRESOS (A+B+C)",     key:"disponible",     bold:true },
+    { label:"SERVICIOS VENDIDOS",             key:"i1" },
+    { label:"OFRENDAS / SOBRES",              key:"i2" },
+    { label:"DIEZMO / MIEMBROS",              key:"i3" },
+    { label:"OTROS INGRESOS",                 key:"i4" },
+    { label:"INGRESOS DEL EVENTO (C)",        key:"ingresosEvento", bold:true, color:[173,216,230] },
+    { label:"TOTAL INGRESOS (A+B+C)",         key:"disponible",     bold:true },
     { label:"EGRESOS", header:true },
-    { label:"DIEZMO OFICINA NACIONAL",    key:"e1", color:[255,255,153] },
-    { label:"OFRENDA AL TESTIMONIO",      key:"e2" },
-    { label:"FACTURA",                    key:"e3" },
-    { label:"MEDIAS BECAS",               key:"e4" },
-    { label:"OTROS GASTOS",               key:"e5" },
-    { label:"EGRESOS DEL EVENTO (D)",     key:"totalEgresos",   bold:true, color:[255,200,150] },
-    { label:"TOTAL INGRESOS (A+B+C-D)",   key:"saldoFinal",     bold:true },
+    { label:"DIEZMO OFICINA NACIONAL",        key:"e1", color:[255,255,153] },
+    { label:"OFRENDA AL TESTIMONIO",          key:"e2" },
+    { label:"FACTURA",                        key:"e3" },
+    { label:"MEDIAS BECAS",                   key:"e4" },
+    { label:"OTROS GASTOS",                   key:"e5" },
+    { label:"EGRESOS DEL EVENTO (D)",         key:"totalEgresos",   bold:true, color:[255,200,150] },
+    { label:"TOTAL INGRESOS (A+B+C-D)",       key:"saldoFinal",     bold:true },
   ];
 
   const colW = Math.min(28, (W - mar*2 - 42) / Math.max(evT.length, 1));
   const labelW = 42;
   let y = startY;
 
-  // Encabezado columnas
   doc.setFillColor(44,44,44); doc.setTextColor(255,255,255);
   doc.setFontSize(7); doc.setFont(undefined,"bold");
   doc.rect(mar, y, labelW, 7, "F");
@@ -526,13 +523,11 @@ async function generarInformeMensual() {
   });
   y += 7;
 
-  // Mes vertical
   doc.setFillColor(139,0,0); doc.setTextColor(255,255,255);
   doc.rect(mar - 8, startY, 7, y - startY + conceptos.length * 6 + 10, "F");
   doc.setFontSize(9); doc.setFont(undefined,"bold");
   doc.text(nomMes.toUpperCase(), mar - 4.5, startY + (conceptos.length * 6)/2 + 10, { angle: 90, align:"center" });
 
-  // Filas
   conceptos.forEach(c => {
     if (c.header) {
       doc.setFillColor(44,44,44); doc.setTextColor(255,255,255);
@@ -563,13 +558,11 @@ async function generarInformeMensual() {
     y += 6;
   });
 
-  // Año vertical derecho
   doc.setFillColor(139,0,0); doc.setTextColor(255,255,255);
   doc.rect(mar + labelW + evT.length * colW + 1, startY, 7, y - startY + 4, "F");
   doc.setFontSize(9); doc.setFont(undefined,"bold");
   doc.text(String(anio), mar + labelW + evT.length * colW + 4.5, startY + (y-startY)/2, { angle: 90, align:"center" });
 
-  // Resumen del mes
   y += 6;
   const saldoInicialMes = evT.length > 0 ? (parseFloat(evT[0].saldoInicial)||0) : 0;
   const ingresosMes     = evT.reduce((s,d) => s + (parseFloat(d.ingresosEvento)||0), 0);
@@ -601,7 +594,6 @@ async function generarInformeMensual() {
     y += 6;
   });
 
-  // Zona al pie
   y += 4;
   doc.setFillColor(220,220,220); doc.setTextColor(0,0,0);
   doc.rect(mar, y, W-mar*2, 7, "F");
@@ -609,9 +601,8 @@ async function generarInformeMensual() {
   doc.text(`ZONA: ${zona.toUpperCase()}`, W/2, y+5, {align:"center"});
   y += 12;
 
-  // Firmas tesorería
-  const firmasT = ["TESORERO/A", "PRESIDENTE DE CAPÍTULO", "REPRESENTANTE DE CAMPO"];
   const fW = (W - mar*2) / 3;
+  const firmasT = ["TESORERO/A", "PRESIDENTE DE CAPÍTULO", "REPRESENTANTE DE CAMPO"];
   firmasT.forEach((f, i) => {
     const fx = mar + i * fW;
     doc.setDrawColor(0,0,0); doc.setLineWidth(0.4);
@@ -635,7 +626,6 @@ async function generarInformeMensual() {
   doc.text(`CAPÍTULO ${nomCapitulo} (${cap})`, W/2, y+5, {align:"center"});
   y += 10;
 
-  // Tabla secretaría
   const headS = [["Evento No.","Fecha","Visitas","Miembros","Invitados por Eventos","Asistencia por Eventos","No. Eventos","Invitados"]];
   const rowsS = evS.map(d => [
     d.eventoNumero||"", d.fecha||"",
@@ -651,7 +641,6 @@ async function generarInformeMensual() {
     evS.reduce((s,d)=>s+(parseFloat(d.invitadosExt)||0),0),
   ];
 
-  // Encabezado doble: Secretaría / Eventos Externos
   doc.autoTable({
     head: [
       [{content:"S E C R E T A R Í A", colSpan:6, styles:{halign:"center",fillColor:[44,44,44],textColor:255,fontStyle:"bold"}},
@@ -666,18 +655,15 @@ async function generarInformeMensual() {
     footStyles: { fillColor:[255,255,153], textColor:[0,0,0], fontStyle:"bold" },
     alternateRowStyles: { fillColor:[220,220,220] },
     margin: { left:mar, right:mar },
-    didDrawPage: (data) => { y = data.cursor.y; }
   });
 
   y = doc.lastAutoTable.finalY + 4;
 
-  // Pie secretaría
   doc.setFillColor(220,220,220); doc.rect(mar, y, W-mar*2, 7, "F");
   doc.setTextColor(0,0,0); doc.setFontSize(9); doc.setFont(undefined,"bold");
   doc.text("INFORME DE SECRETARÍA", W/2, y+5, {align:"center"});
   y += 16;
 
-  // Firmas secretaría
   const firmasS = ["SECRETARIO/A", "PRESIDENTE DE CAPÍTULO", "REPRESENTANTE DE CAMPO"];
   firmasS.forEach((f, i) => {
     const fx = mar + i * fW;
