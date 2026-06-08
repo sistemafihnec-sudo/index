@@ -52,7 +52,9 @@ auth.onAuthStateChanged(async (user) => {
   }
 
   // Mostrar bienvenida con nombre del capítulo
-  if (codigoCapitulo) {
+ if (data.nombre) {
+    document.getElementById("tituloBienvenida").innerText = "Bienvenido, " + data.nombre;
+  } else if (codigoCapitulo) {
     document.getElementById("tituloBienvenida").innerText = "Bienvenido, " + nombreCapitulo;
   } else {
     document.getElementById("tituloBienvenida").innerText = "Bienvenido";
