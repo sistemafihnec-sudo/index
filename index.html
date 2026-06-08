@@ -58,10 +58,16 @@ auth.onAuthStateChanged(async (user) => {
     document.getElementById("tituloBienvenida").innerText = "Bienvenido";
   }
 
-  // Info adicional debajo
+ // Info adicional debajo
   document.getElementById("infoUsuario").innerText =
     (codigoCapitulo ? "Capítulo: " + codigoCapitulo + "  |  " : "") +
     "Rol: " + rol;
+
+  // Ocultar Tesorería y Secretaría a usuarios supervisores
+  if (rol !== "tesorero") {
+    document.getElementById("btnTesoreria").style.display = "none";
+    document.getElementById("btnSecretaria").style.display = "none";
+  }
 });
 
 function logout() {
