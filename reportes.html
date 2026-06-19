@@ -87,10 +87,16 @@
   </div>
 </div>
 
-<!-- BOTONES DESCARGA GENERAL -->
-<div class="btns-descarga">
+<!-- DESCARGA PARA SUPERVISORES (configuración original, intacta) -->
+<div class="btns-descarga" id="btnsSupervisor" style="display:none;">
   <button class="btn btn-pdf"   onclick="descargarPDF()">⬇ Descargar PDF</button>
   <button class="btn btn-excel" onclick="descargarExcel()">⬇ Descargar Excel</button>
+</div>
+
+<!-- DESCARGA PARA TESORERO (formato oficial nuevo) -->
+<div class="btns-descarga" id="btnsTesorero" style="display:none;">
+  <button class="btn btn-pdf"   onclick="descargarInformePDF()">⬇ Exportar a PDF (listo para imprimir)</button>
+  <button class="btn btn-excel" onclick="descargarInformeExcel()">⬇ Descargar en Excel (mismo formato)</button>
 </div>
 
 <div id="mensajeCargando">Cargando datos...</div>
@@ -172,6 +178,11 @@ auth.onAuthStateChanged(async (user) => {
       document.getElementById("panelFiltros").style.display = "block";
       // Mostrar informe mensual solo para roles que pueden ver capítulos individuales
       document.getElementById("panelInformeMensual").style.display = "block";
+      // Botones de descarga ORIGINALES (tabla corrida, Tesorería + Secretaría, respeta filtros)
+      document.getElementById("btnsSupervisor").style.display = "flex";
+    } else {
+      // Botones de descarga del TESORERO (formato oficial mensual)
+      document.getElementById("btnsTesorero").style.display = "flex";
     }
 
     // Cargar datos según rol
@@ -437,7 +448,7 @@ function renderTablas(tData, sData) {
   </tr>` : "";
 }
 
-// ── INFORME MENSUAL PDF ──
+// ── INFORME MENSUAL PDF (supervisores) ──
 async function generarInformeMensual() {
   const cap  = document.getElementById("informeCapitulo").value;
   const mes  = parseInt(document.getElementById("informeMes").value);
@@ -676,7 +687,10 @@ async function generarInformeMensual() {
   doc.save(`informe-mensual-${cap}-${nomMes}-${anio}.pdf`);
 }
 
-// ── DESCARGA PDF GENERAL ──
+// ════════════════════════════════════════════════════
+//  DESCARGA SUPERVISORES (ORIGINAL — tabla corrida)
+// ════════════════════════════════════════════════════
+
 function descargarPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:"landscape", unit:"mm", format:"letter" });
@@ -700,7 +714,6 @@ function descargarPDF() {
   doc.save("reporte-fihnec.pdf");
 }
 
-// ── DESCARGA EXCEL GENERAL ──
 function descargarExcel() {
   const wb = XLSX.utils.book_new();
   const headT=[["Fecha","Capítulo","Saldo Inicial","Servicios","Ofrendas","Diezmos","Otros Ing.","Ing. Evento","Disponible","Diezmo Nac.","Of. Testimonio","Factura","Med. Becas","Otros Gastos","Total Gastos","Saldo Final"]];
@@ -710,6 +723,284 @@ function descargarExcel() {
   const rowsS=[...document.querySelectorAll("#cuerpoSecretaria tr")].map(tr=>[...tr.querySelectorAll("td")].map(td=>td.innerText));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([...headS,...rowsS]), "Secretaría");
   XLSX.writeFile(wb, "reporte-fihnec.xlsx");
+}
+
+// ════════════════════════════════════════════════════
+//  DESCARGA TESORERO (FORMATO OFICIAL MENSUAL FIHNEC)
+// ════════════════════════════════════════════════════
+
+// 👇 Nombre del archivo de logo en la raíz del repositorio
+const LOGO_URL = "logo.png";
+
+const MESES_NOMBRE = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
+  "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+// Filas del informe en orden, con sus colores
+const FILAS_INFORME = [
+  {id:"A",  label:"SALDO INICIAL DEL MES (A)",     bold:true},
+  {id:"B",  label:"SALDO ANTERIOR DEL EVENTO (B)", bold:true},
+  {header:"INGRESOS"},
+  {id:"i1", label:"SERVICIOS VENDIDOS"},
+  {id:"i2", label:"OFRENDAS / SOBRES"},
+  {id:"i3", label:"DIEZMO / MIEMBROS"},
+  {id:"i4", label:"OTROS INGRESOS"},
+  {id:"C",  label:"INGRESOS DEL EVENTO (C)",       bold:true, color:[189,215,238]},
+  {id:"TI", label:"TOTAL INGRESOS (A+B+C)",        bold:true},
+  {header:"EGRESOS"},
+  {id:"e1", label:"DIEZMO OFICINA NACIONAL",       color:[255,235,156]},
+  {id:"e2", label:"OFRENDA AL TESTIMONIO"},
+  {id:"e3", label:"FACTURA"},
+  {id:"e4", label:"MEDIAS BECAS"},
+  {id:"e5", label:"OTROS GASTOS"},
+  {id:"D",  label:"EGRESOS DEL EVENTO (D)",        bold:true, color:[248,203,173]},
+  {id:"TF", label:"TOTAL INGRESOS (A+B+C-D)",      bold:true, color:[226,239,218]},
+];
+
+function fechaDe(d){ return d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha); }
+function fmtFechaCorta(ev){
+  const f = fechaDe(ev);
+  const dd = String(f.getDate()).padStart(2,"0");
+  const mm = String(f.getMonth()+1).padStart(2,"0");
+  return `${dd}/${mm}/${f.getFullYear()}`;
+}
+
+// Agrupa eventos por capítulo y por mes, con número correlativo por capítulo
+function agruparInforme(datos){
+  const porCap = {};
+  datos.forEach(d => { const c=d.codigoCapitulo||""; (porCap[c]=porCap[c]||[]).push(d); });
+
+  const bloques = [];
+  Object.keys(porCap).forEach(cap=>{
+    const evs = porCap[cap].slice().sort((a,b)=>fechaDe(a)-fechaDe(b));
+    evs.forEach((e,i)=> e.__numero = i+1);
+    const porMes = {};
+    evs.forEach(e=>{
+      const f = fechaDe(e);
+      const k = f.getFullYear()+"-"+f.getMonth();
+      (porMes[k]=porMes[k]||[]).push(e);
+    });
+    Object.keys(porMes).forEach(k=>{
+      const [anio,mes] = k.split("-").map(Number);
+      bloques.push({ cap, anio, mes, eventos: porMes[k] });
+    });
+  });
+  bloques.sort((a,b)=> a.cap.localeCompare(b.cap) || a.anio-b.anio || a.mes-b.mes);
+  return bloques;
+}
+
+// Valores de una columna (un evento). Los ceros de detalle quedan en blanco.
+function colMapInforme(ev, idx){
+  const det = v => { v=parseFloat(v)||0; return v===0 ? "" : fmt(v); };
+  return {
+    A: idx===0 ? fmt(ev.saldoInicial) : "",
+    B: idx===0 ? "" : fmt(ev.saldoInicial),
+    i1:det(ev.i1), i2:det(ev.i2), i3:det(ev.i3), i4:det(ev.i4),
+    C: fmt(ev.ingresosEvento),
+    TI:fmt(ev.disponible),
+    e1:det(ev.e1), e2:det(ev.e2), e3:det(ev.e3), e4:det(ev.e4), e5:det(ev.e5),
+    D: fmt(ev.totalEgresos),
+    TF:fmt(ev.saldoFinal),
+    __head: `Evento #${ev.__numero}`,
+    __fecha:`Fecha: ${fmtFechaCorta(ev)}`
+  };
+}
+
+// Columna vacía (siguiente evento) que arrastra el saldo final
+function carryCol(lastFinal){
+  return { A:"", B:fmt(lastFinal), i1:"",i2:"",i3:"",i4:"", C:fmt(0), TI:fmt(lastFinal),
+    e1:"",e2:"",e3:"",e4:"",e5:"", D:fmt(0), TF:fmt(lastFinal),
+    __head:"Evento #", __fecha:"Fecha:" };
+}
+
+// Carga el logo como imagen utilizable por jsPDF (o null si falla)
+function cargarLogo(){
+  return new Promise(res=>{
+    if(!LOGO_URL){ res(null); return; }
+    const img = new Image();
+    img.onload = ()=>{
+      try{
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        c.getContext("2d").drawImage(img,0,0);
+        res({ data:c.toDataURL("image/png"), w:img.naturalWidth, h:img.naturalHeight });
+      }catch(e){ res(null); }
+    };
+    img.onerror = ()=> res(null);
+    img.src = LOGO_URL;
+  });
+}
+
+// Dibuja un bloque (un mes) en el PDF
+function dibujarBloquePDF(doc, b, logo){
+  const sede = sedesMap[b.cap] || {};
+  const nom  = sede.nombre || b.cap;
+  const muni = sede.municipio || sede.ciudad || nom;
+  const eventos = b.eventos;
+  const W = 215.9, mar = 12;
+
+  if(logo){
+    const h = 20, w = 20*(logo.w/logo.h);
+    try{ doc.addImage(logo.data,"PNG",mar,8,w,h); }catch(e){}
+  }
+
+  doc.setTextColor(0,0,0); doc.setFont(undefined,"bold");
+  doc.setFontSize(8.5);
+  doc.text("FRATERNIDAD INTERNACIONAL DE HOMBRES DE NEGOCIOS DEL EVANGELIO COMPLETO", W/2, 12, {align:"center"});
+  doc.setFontSize(12);
+  doc.text("INFORME MENSUAL DE TESORERÍA", W/2, 18.5, {align:"center"});
+  doc.setFontSize(8.5);
+  doc.text(`Capítulo: ${nom}     Código: ${b.cap}     Ciudad y/o Municipio: ${muni}     Mes: ${MESES_NOMBRE[b.mes]}     Año: ${b.anio}`,
+    W/2, 25, {align:"center"});
+
+  const cols = eventos.map((ev,i)=>colMapInforme(ev,i));
+  const lastFinal = parseFloat(eventos[eventos.length-1].saldoFinal)||0;
+  cols.push(carryCol(lastFinal));
+
+  const labelW = 54, ncol = cols.length;
+  const colW = Math.min(34, (W-2*mar-labelW)/ncol);
+  const rh = 6, hh = 9;
+  let y = 30;
+
+  // Encabezado de la tabla
+  doc.setFillColor(217,217,217); doc.setDrawColor(120,120,120);
+  doc.rect(mar,y,labelW,hh,"FD");
+  doc.setTextColor(0,0,0); doc.setFont(undefined,"bold"); doc.setFontSize(8);
+  doc.text("CONCEPTO", mar+labelW/2, y+hh/2+1, {align:"center"});
+  cols.forEach((c,i)=>{
+    const x = mar+labelW+i*colW;
+    doc.setFillColor(217,217,217); doc.rect(x,y,colW,hh,"FD");
+    doc.setFontSize(7.5); doc.text(c.__head, x+colW/2, y+3.5, {align:"center"});
+    doc.setFontSize(6);   doc.text(c.__fecha, x+colW/2, y+7,  {align:"center"});
+  });
+  y += hh;
+
+  // Filas
+  FILAS_INFORME.forEach(f=>{
+    if(f.header){
+      doc.setFillColor(44,44,44); doc.rect(mar,y,labelW+ncol*colW,rh,"F");
+      doc.setTextColor(255,255,255); doc.setFont(undefined,"bold"); doc.setFontSize(7.5);
+      doc.text(f.header, mar+2, y+rh/2+1.5);
+      doc.setTextColor(0,0,0); y += rh; return;
+    }
+    const color = f.color || [255,255,255];
+    doc.setFillColor(...color); doc.setDrawColor(160,160,160);
+    doc.rect(mar,y,labelW,rh,"FD");
+    doc.setFont(undefined, f.bold?"bold":"normal"); doc.setFontSize(7); doc.setTextColor(0,0,0);
+    doc.text(f.label, mar+1.5, y+rh/2+1.5);
+    cols.forEach((c,i)=>{
+      const x = mar+labelW+i*colW;
+      doc.setFillColor(...color); doc.rect(x,y,colW,rh,"FD");
+      doc.setFont(undefined, f.bold?"bold":"normal");
+      doc.text(c[f.id]||"", x+colW-1.5, y+rh/2+1.5, {align:"right"});
+    });
+    y += rh;
+  });
+
+  // Resumen del mes
+  y += 6;
+  const saldoIni = parseFloat(eventos[0].saldoInicial)||0;
+  const ingMes = eventos.reduce((s,d)=>s+(parseFloat(d.ingresosEvento)||0),0);
+  const egrMes = eventos.reduce((s,d)=>s+(parseFloat(d.totalEgresos)||0),0);
+  const resW = 84;
+  const resumen = [
+    ["Saldo Inicial del Mes", saldoIni],
+    ["Ingresos del Mes",      ingMes],
+    ["Egresos del Mes",       egrMes],
+    ["Saldo final del mes C$",lastFinal],
+  ];
+  let yr = y;
+  resumen.forEach(([l,v])=>{
+    doc.setDrawColor(120,120,120); doc.setFillColor(255,255,255);
+    doc.rect(mar,yr,resW*0.62,rh,"FD"); doc.rect(mar+resW*0.62,yr,resW*0.38,rh,"FD");
+    doc.setFont(undefined,"bold"); doc.setFontSize(8); doc.setTextColor(0,0,0);
+    doc.text(l, mar+2, yr+rh/2+1.5);
+    doc.text(fmt(v), mar+resW-2, yr+rh/2+1.5, {align:"right"});
+    yr += rh;
+  });
+  doc.setFont(undefined,"italic"); doc.setFontSize(8);
+  doc.text("Nota: el saldo final del mes debe ser igual al saldo del último evento.",
+    mar+resW+8, y+rh+2, { maxWidth: W-(mar+resW+8)-mar });
+
+  // Firmas
+  const ys = yr + 24;
+  const fW = (W-2*mar)/3;
+  ["Tesorero Capítulo","Presidente del Capítulo","Representante de Campo del Cap."].forEach((f,i)=>{
+    const fx = mar+i*fW;
+    doc.setDrawColor(0,0,0); doc.setLineWidth(0.4);
+    doc.line(fx+6, ys, fx+fW-6, ys);
+    doc.setFont(undefined,"normal"); doc.setFontSize(8);
+    doc.text(f, fx+fW/2, ys+5, {align:"center"});
+  });
+}
+
+// BOTÓN: EXPORTAR A PDF (tesorero)
+async function descargarInformePDF(){
+  const bloques = agruparInforme(datosTesoreria);
+  if(bloques.length === 0){ alert("No hay datos para exportar."); return; }
+  const logo = await cargarLogo();
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"letter" });
+  bloques.forEach((b,idx)=>{
+    if(idx>0) doc.addPage();
+    dibujarBloquePDF(doc, b, logo);
+  });
+  doc.save("informe-tesoreria-fihnec.pdf");
+}
+
+// BOTÓN: DESCARGAR EN EXCEL (tesorero, mismo formato)
+function descargarInformeExcel(){
+  const bloques = agruparInforme(datosTesoreria);
+  if(bloques.length === 0){ alert("No hay datos para exportar."); return; }
+  const wb = XLSX.utils.book_new();
+  const usados = {};
+
+  bloques.forEach(b=>{
+    const sede = sedesMap[b.cap] || {};
+    const nom  = sede.nombre || b.cap;
+    const muni = sede.municipio || sede.ciudad || nom;
+    const eventos = b.eventos;
+    const cols = eventos.map((ev,i)=>colMapInforme(ev,i));
+    const lastFinal = parseFloat(eventos[eventos.length-1].saldoFinal)||0;
+    cols.push(carryCol(lastFinal));
+    const ncol = 1 + cols.length;
+
+    const aoa = [];
+    aoa.push(["FRATERNIDAD INTERNACIONAL DE HOMBRES DE NEGOCIOS DEL EVANGELIO COMPLETO"]);
+    aoa.push(["INFORME MENSUAL DE TESORERÍA"]);
+    aoa.push([`Capítulo: ${nom}`, `Código: ${b.cap}`, `Ciudad y/o Municipio: ${muni}`, `Mes: ${MESES_NOMBRE[b.mes]}`, `Año: ${b.anio}`]);
+    aoa.push([]);
+    aoa.push(["CONCEPTO", ...cols.map(c=>c.__head)]);
+    aoa.push(["",         ...cols.map(c=>c.__fecha)]);
+    FILAS_INFORME.forEach(f=>{
+      if(f.header){ aoa.push([f.header]); return; }
+      aoa.push([f.label, ...cols.map(c=>c[f.id]||"")]);
+    });
+    aoa.push([]);
+    aoa.push(["Saldo Inicial del Mes", fmt(parseFloat(eventos[0].saldoInicial)||0)]);
+    aoa.push(["Ingresos del Mes",      fmt(eventos.reduce((s,d)=>s+(parseFloat(d.ingresosEvento)||0),0))]);
+    aoa.push(["Egresos del Mes",       fmt(eventos.reduce((s,d)=>s+(parseFloat(d.totalEgresos)||0),0))]);
+    aoa.push(["Saldo final del mes C$",fmt(lastFinal)]);
+    aoa.push([]);
+    aoa.push(["Nota: el saldo final del mes debe ser igual al saldo del último evento."]);
+    aoa.push([]); aoa.push([]);
+    aoa.push(["Tesorero Capítulo","","Presidente del Capítulo","","Representante de Campo del Cap."]);
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!merges"] = [
+      {s:{r:0,c:0}, e:{r:0,c:ncol-1}},
+      {s:{r:1,c:0}, e:{r:1,c:ncol-1}},
+    ];
+    ws["!cols"] = [{wch:30}, ...cols.map(()=>({wch:16}))];
+
+    // Nombre de hoja único y <=31 caracteres
+    let name = `${b.cap} ${MESES_NOMBRE[b.mes].slice(0,3)} ${b.anio}`.substring(0,31);
+    let n = 2;
+    while(usados[name]){ name = (`${b.cap} ${MESES_NOMBRE[b.mes].slice(0,3)} ${b.anio}`).substring(0,28)+" "+(n++); }
+    usados[name] = true;
+    XLSX.utils.book_append_sheet(wb, ws, name);
+  });
+
+  XLSX.writeFile(wb, "informe-tesoreria-fihnec.xlsx");
 }
 </script>
 </body>
