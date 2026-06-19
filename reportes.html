@@ -939,7 +939,7 @@ async function descargarInformePDF(){
   if(bloques.length === 0){ alert("No hay datos para exportar."); return; }
   const logo = await cargarLogo();
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"letter" });
+  const doc = new jsPDF({ orientation:"landscape", unit:"mm", format:"letter" });
   bloques.forEach((b,idx)=>{
     if(idx>0) doc.addPage();
     dibujarBloquePDF(doc, b, logo);
