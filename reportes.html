@@ -92,6 +92,12 @@
   <strong>Consolidado Mensual</strong>
   <div style="font-size:12px; color:#666; margin:4px 0 10px;">Descarga el resumen de todos los capítulos de tu alcance, o filtra por un campo.</div>
   <div class="filtros">
+    <label id="wrapConsRegion" style="display:none;">Región
+      <select id="consRegion" onchange="consFiltrarZonas()"><option value="">Todas</option></select>
+    </label>
+    <label id="wrapConsZona" style="display:none;">Zona
+      <select id="consZona" onchange="consFiltrarCampos()"><option value="">Todas</option></select>
+    </label>
     <label>Campo
       <select id="consCampo"><option value="">Todo mi alcance</option></select>
     </label>
@@ -1045,19 +1051,71 @@ function capitulosEnAlcance(){
 
 // Capítulos tras aplicar el filtro de Campo elegido
 function capitulosConsolidado(){
-  const campoSel = document.getElementById("consCampo").value;
   let caps = capitulosEnAlcance();
-  if (campoSel) caps = caps.filter(c => (sedesMap[c]||{}).campo === campoSel);
+  const region = document.getElementById("consRegion") ? document.getElementById("consRegion").value : "";
+  const zona   = document.getElementById("consZona")   ? document.getElementById("consZona").value   : "";
+  const campo  = document.getElementById("consCampo")  ? document.getElementById("consCampo").value  : "";
+  if (region) caps = caps.filter(c => (sedesMap[c]||{}).region === region);
+  if (zona)   caps = caps.filter(c => (sedesMap[c]||{}).zona   === zona);
+  if (campo)  caps = caps.filter(c => (sedesMap[c]||{}).campo  === campo);
   return caps;
+}
+
+// Capítulos del alcance del rol, ya acotados por la Región elegida (maestro)
+function capsBaseConsolidado(){
+  let caps = capitulosEnAlcance();
+  const region = document.getElementById("consRegion") ? document.getElementById("consRegion").value : "";
+  if (region) caps = caps.filter(c => (sedesMap[c]||{}).region === region);
+  return caps;
+}
+
+// Cascada: al cambiar Región se repueblan Zonas; al cambiar Zona se repueblan Campos
+function consFiltrarZonas(){
+  const selZona = document.getElementById("consZona");
+  const zonas = [...new Set(capsBaseConsolidado().map(c => (sedesMap[c]||{}).zona).filter(Boolean))].sort();
+  selZona.innerHTML = '<option value="">Todas</option>';
+  zonas.forEach(z => selZona.innerHTML += `<option value="${z}">${z}</option>`);
+  consFiltrarCampos();
+}
+function consFiltrarCampos(){
+  const selCampo = document.getElementById("consCampo");
+  const zona = document.getElementById("consZona").value;
+  let caps = capsBaseConsolidado();
+  if (zona) caps = caps.filter(c => (sedesMap[c]||{}).zona === zona);
+  const campos = [...new Set(caps.map(c => (sedesMap[c]||{}).campo).filter(Boolean))].sort();
+  selCampo.innerHTML = '<option value="">Todo mi alcance</option>';
+  campos.forEach(c => selCampo.innerHTML += `<option value="${c}">${c}</option>`);
 }
 
 // Llena los selectores del panel consolidado
 function poblarConsolidado(){
-  const caps   = capitulosEnAlcance();
-  const campos = [...new Set(caps.map(c => (sedesMap[c]||{}).campo).filter(Boolean))].sort();
-  const selCampo = document.getElementById("consCampo");
-  campos.forEach(c => selCampo.innerHTML += `<option value="${c}">${c}</option>`);
+  const caps = capitulosEnAlcance();
 
+  // Mostrar filtros Región / Zona según el rol
+  const wrapRegion = document.getElementById("wrapConsRegion");
+  const wrapZona   = document.getElementById("wrapConsZona");
+  if (rolUsuario === "maestro") {
+    wrapRegion.style.display = "flex";
+    wrapZona.style.display   = "flex";
+  } else if (rolUsuario === "regional") {
+    wrapRegion.style.display = "none";   // su región es fija
+    wrapZona.style.display   = "flex";
+  } else {
+    wrapRegion.style.display = "none";
+    wrapZona.style.display   = "none";
+  }
+
+  // Región (solo maestro)
+  if (rolUsuario === "maestro") {
+    const regiones = [...new Set(caps.map(c => (sedesMap[c]||{}).region).filter(Boolean))].sort();
+    const selR = document.getElementById("consRegion");
+    regiones.forEach(r => selR.innerHTML += `<option value="${r}">${r}</option>`);
+  }
+
+  // Poblar Zonas y Campos en cascada (respeta el alcance del rol)
+  consFiltrarZonas();
+
+  // Años disponibles
   const anios = [...new Set([
     ...datosTesoreria.map(d => fechaDe(d).getFullYear()),
     ...datosSecretaria.map(d => d.fecha ? new Date(d.fecha).getFullYear() : NaN)
