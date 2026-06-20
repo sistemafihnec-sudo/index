@@ -174,18 +174,13 @@ auth.onAuthStateChanged(async (user) => {
     const esSupervisor = ROLES_SUPERVISOR.includes(rolUsuario);
 
     if (esSupervisor) {
-      // Mostrar panel de filtros
       document.getElementById("panelFiltros").style.display = "block";
-      // Mostrar informe mensual solo para roles que pueden ver capítulos individuales
       document.getElementById("panelInformeMensual").style.display = "block";
-      // Botones de descarga ORIGINALES (tabla corrida, Tesorería + Secretaría, respeta filtros)
       document.getElementById("btnsSupervisor").style.display = "flex";
     } else {
-      // Botones de descarga del TESORERO (formato oficial mensual)
       document.getElementById("btnsTesorero").style.display = "flex";
     }
 
-    // Cargar datos según rol
     if (rolUsuario === "maestro") {
       await cargarTodos();
       poblarFiltros();
@@ -212,7 +207,6 @@ auth.onAuthStateChanged(async (user) => {
       fijarSelect("filtroZona",   usuarioZona);
 
     } else {
-      // tesorero: solo su capítulo, sin panel de filtros ni informe mensual
       await cargarMisDatos();
     }
 
@@ -224,7 +218,6 @@ auth.onAuthStateChanged(async (user) => {
   }
 });
 
-// Fija un select a un valor y lo deshabilita
 function fijarSelect(id, valor) {
   const sel = document.getElementById(id);
   if (!sel || !valor) return;
@@ -243,7 +236,6 @@ function getZona(cap)    { return sedesMap[cap]?.zona   || ""; }
 function getNombre(cap)  { return sedesMap[cap]?.nombre || cap; }
 
 // ── CARGA DATOS ──
-
 async function cargarTodos() {
   const [snapT, snapS] = await Promise.all([
     db.collection("tesoreria").get(),
@@ -310,13 +302,10 @@ function poblarFiltros() {
 
   const selR = document.getElementById("filtroRegion");
   regiones.forEach(r => selR.innerHTML += `<option value="${r}">${r}</option>`);
-
   const selZ = document.getElementById("filtroZona");
   zonas.forEach(z => selZ.innerHTML += `<option value="${z}">${z}</option>`);
-
   const selC = document.getElementById("filtroCapitulo");
   caps.forEach(c => selC.innerHTML += `<option value="${c}">${c} - ${getNombre(c)}</option>`);
-
   const selA = document.getElementById("filtroAnio");
   anios.forEach(a => selA.innerHTML += `<option value="${a}">${a}</option>`);
 }
@@ -330,10 +319,8 @@ function poblarInformeSelects() {
 
   const selC = document.getElementById("informeCapitulo");
   caps.forEach(c => selC.innerHTML += `<option value="${c}">${c} - ${getNombre(c)}</option>`);
-
   const selA = document.getElementById("informeAnio");
   anios.forEach(a => selA.innerHTML += `<option value="${a}" ${a == new Date().getFullYear() ? "selected":""}>${a}</option>`);
-
   document.getElementById("informeMes").value = new Date().getMonth();
 }
 
@@ -467,7 +454,6 @@ async function generarInformeMensual() {
     const f = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
     return f.getFullYear() === anio && f.getMonth() === mes;
   });
-
   const evS = datosSecretaria.filter(d => {
     if (d.codigoCapitulo !== cap) return false;
     if (!d.fecha) return false;
@@ -555,14 +541,12 @@ async function generarInformeMensual() {
     doc.setFont(undefined, c.bold ? "bold" : "normal");
     doc.setTextColor(0,0,0);
     doc.text(c.label, mar+2, y+4);
-
     evT.forEach((ev, i) => {
       const fx = mar + labelW + i*colW;
       doc.setFillColor(...bg);
       doc.rect(fx, y, colW, 6, "F");
       doc.setTextColor(0,0,0);
-      const val = fmt(ev[c.key]);
-      doc.text(val, fx + colW - 2, y+4, {align:"right"});
+      doc.text(fmt(ev[c.key]), fx + colW - 2, y+4, {align:"right"});
     });
     doc.setDrawColor(180,180,180);
     doc.rect(mar, y, labelW + evT.length * colW, 6);
@@ -586,7 +570,6 @@ async function generarInformeMensual() {
   doc.rect(resX, y, resW, 7, "F");
   doc.text("RESUMEN DEL MES", resX + resW/2, y+5, {align:"center"});
   y += 7;
-
   const resumen = [
     ["Saldo Inicial del Mes",  fmt(saldoInicialMes)],
     ["Ingresos del Mes",       fmt(ingresosMes)],
@@ -613,8 +596,7 @@ async function generarInformeMensual() {
   y += 12;
 
   const fW = (W - mar*2) / 3;
-  const firmasT = ["TESORERO/A", "PRESIDENTE DE CAPÍTULO", "REPRESENTANTE DE CAMPO"];
-  firmasT.forEach((f, i) => {
+  ["TESORERO/A", "PRESIDENTE DE CAPÍTULO", "REPRESENTANTE DE CAMPO"].forEach((f, i) => {
     const fx = mar + i * fW;
     doc.setDrawColor(0,0,0); doc.setLineWidth(0.4);
     doc.line(fx+4, y+10, fx+fW-4, y+10);
@@ -625,13 +607,11 @@ async function generarInformeMensual() {
   // ── PÁGINA 2: SECRETARÍA ──
   doc.addPage();
   y = 10;
-
   doc.setFillColor(139,0,0);
   doc.rect(mar, y, W-mar*2, 10, "F");
   doc.setTextColor(255,255,255); doc.setFontSize(11); doc.setFont(undefined,"bold");
   doc.text("FIHNEC, RACCN - NICARAGUA", W/2, y+6.5, {align:"center"});
   y += 11;
-
   doc.setFillColor(220,220,220); doc.rect(mar, y, W-mar*2, 7, "F");
   doc.setTextColor(0,0,0); doc.setFontSize(10);
   doc.text(`CAPÍTULO ${nomCapitulo} (${cap})`, W/2, y+5, {align:"center"});
@@ -651,32 +631,25 @@ async function generarInformeMensual() {
     evS.reduce((s,d)=>s+(parseFloat(d.noEventos)||0),0),
     evS.reduce((s,d)=>s+(parseFloat(d.invitadosExt)||0),0),
   ];
-
   doc.autoTable({
     head: [
       [{content:"S E C R E T A R Í A", colSpan:6, styles:{halign:"center",fillColor:[44,44,44],textColor:255,fontStyle:"bold"}},
        {content:"EVENTOS EXTERNOS", colSpan:2, styles:{halign:"center",fillColor:[44,44,44],textColor:255,fontStyle:"bold"}}],
       ...headS
     ],
-    body: rowsS,
-    foot: [totS],
-    startY: y,
+    body: rowsS, foot: [totS], startY: y,
     styles: { fontSize: 9, halign:"center" },
     headStyles: { fillColor:[200,164,0], textColor:[34,34,34], fontStyle:"bold" },
     footStyles: { fillColor:[255,255,153], textColor:[0,0,0], fontStyle:"bold" },
     alternateRowStyles: { fillColor:[220,220,220] },
     margin: { left:mar, right:mar },
   });
-
   y = doc.lastAutoTable.finalY + 4;
-
   doc.setFillColor(220,220,220); doc.rect(mar, y, W-mar*2, 7, "F");
   doc.setTextColor(0,0,0); doc.setFontSize(9); doc.setFont(undefined,"bold");
   doc.text("INFORME DE SECRETARÍA", W/2, y+5, {align:"center"});
   y += 16;
-
-  const firmasS = ["SECRETARIO/A", "PRESIDENTE DE CAPÍTULO", "REPRESENTANTE DE CAMPO"];
-  firmasS.forEach((f, i) => {
+  ["SECRETARIO/A", "PRESIDENTE DE CAPÍTULO", "REPRESENTANTE DE CAMPO"].forEach((f, i) => {
     const fx = mar + i * fW;
     doc.setDrawColor(0,0,0); doc.setLineWidth(0.4);
     doc.line(fx+4, y+10, fx+fW-4, y+10);
@@ -690,11 +663,9 @@ async function generarInformeMensual() {
 // ════════════════════════════════════════════════════
 //  DESCARGA SUPERVISORES (ORIGINAL — tabla corrida)
 // ════════════════════════════════════════════════════
-
 function descargarPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:"landscape", unit:"mm", format:"letter" });
-
   doc.setFontSize(13); doc.text("REPORTE DE TESORERÍA - FIHNEC", 14, 14);
   doc.autoTable({
     head:[["Fecha","Capítulo","S.Inicial","Servicios","Ofrendas","Diezmos","Otros Ing.","Ing.Evento","Disponible","Diezmo Nac.","Of.Test.","Factura","Med.Becas","Otros G.","Total G.","S.Final"]],
@@ -702,7 +673,6 @@ function descargarPDF() {
     foot: [[...document.querySelectorAll("#totalTesoreria td")].map(td=>td.innerText)],
     startY:18, styles:{fontSize:6}, headStyles:{fillColor:[200,164,0]}, footStyles:{fillColor:[44,44,44],textColor:255}
   });
-
   const y2 = doc.lastAutoTable.finalY + 10;
   doc.setFontSize(13); doc.text("REPORTE DE SECRETARÍA - FIHNEC", 14, y2);
   doc.autoTable({
@@ -727,6 +697,7 @@ function descargarExcel() {
 
 // ════════════════════════════════════════════════════
 //  DESCARGA TESORERO (FORMATO OFICIAL MENSUAL FIHNEC)
+//  Portada + Tesorería + Portada + Secretaría, por mes
 // ════════════════════════════════════════════════════
 
 // 👇 Nombre del archivo de logo en la raíz del repositorio
@@ -735,7 +706,6 @@ const LOGO_URL = "logo.png";
 const MESES_NOMBRE = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
   "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
-// Filas del informe en orden, con sus colores
 const FILAS_INFORME = [
   {id:"A",  label:"SALDO INICIAL DEL MES (A)",     bold:true},
   {id:"B",  label:"SALDO ANTERIOR DEL EVENTO (B)", bold:true},
@@ -764,31 +734,43 @@ function fmtFechaCorta(ev){
   return `${dd}/${mm}/${f.getFullYear()}`;
 }
 
-// Agrupa eventos por capítulo y por mes, con número correlativo por capítulo
-function agruparInforme(datos){
-  const porCap = {};
-  datos.forEach(d => { const c=d.codigoCapitulo||""; (porCap[c]=porCap[c]||[]).push(d); });
-
-  const bloques = [];
-  Object.keys(porCap).forEach(cap=>{
-    const evs = porCap[cap].slice().sort((a,b)=>fechaDe(a)-fechaDe(b));
+// Agrupa por capítulo + mes, juntando Tesorería (tes) y Secretaría (sec)
+function agruparMeses(){
+  // Numerar eventos de tesorería por capítulo (orden por fecha)
+  const porCapT = {};
+  datosTesoreria.forEach(d => { const c=d.codigoCapitulo||""; (porCapT[c]=porCapT[c]||[]).push(d); });
+  Object.values(porCapT).forEach(evs => {
+    evs.sort((a,b)=>fechaDe(a)-fechaDe(b));
     evs.forEach((e,i)=> e.__numero = i+1);
-    const porMes = {};
-    evs.forEach(e=>{
-      const f = fechaDe(e);
-      const k = f.getFullYear()+"-"+f.getMonth();
-      (porMes[k]=porMes[k]||[]).push(e);
-    });
-    Object.keys(porMes).forEach(k=>{
-      const [anio,mes] = k.split("-").map(Number);
-      bloques.push({ cap, anio, mes, eventos: porMes[k] });
-    });
+  });
+
+  const map = {};
+  const keyOf = (cap,f) => cap + "|" + f.getFullYear() + "|" + f.getMonth();
+
+  datosTesoreria.forEach(d => {
+    const f = fechaDe(d); if (isNaN(f)) return;
+    const cap = d.codigoCapitulo || "";
+    const k = keyOf(cap, f);
+    (map[k] = map[k] || { cap, anio:f.getFullYear(), mes:f.getMonth(), tes:[], sec:[] }).tes.push(d);
+  });
+  datosSecretaria.forEach(d => {
+    if (!d.fecha) return;
+    const f = new Date(d.fecha); if (isNaN(f)) return;
+    const cap = d.codigoCapitulo || "";
+    const k = keyOf(cap, f);
+    (map[k] = map[k] || { cap, anio:f.getFullYear(), mes:f.getMonth(), tes:[], sec:[] }).sec.push(d);
+  });
+
+  const bloques = Object.values(map);
+  bloques.forEach(b => {
+    b.tes.sort((a,b)=>fechaDe(a)-fechaDe(b));
+    b.sec.sort((a,b)=>(a.eventoNumero||0)-(b.eventoNumero||0));
+    b.eventos = b.tes; // alias para dibujarBloquePDF
   });
   bloques.sort((a,b)=> a.cap.localeCompare(b.cap) || a.anio-b.anio || a.mes-b.mes);
   return bloques;
 }
 
-// Valores de una columna (un evento). Los ceros de detalle quedan en blanco.
 function colMapInforme(ev, idx){
   const det = v => { v=parseFloat(v)||0; return v===0 ? "" : fmt(v); };
   return {
@@ -804,15 +786,12 @@ function colMapInforme(ev, idx){
     __fecha:`Fecha: ${fmtFechaCorta(ev)}`
   };
 }
-
-// Columna vacía (siguiente evento) que arrastra el saldo final
 function carryCol(lastFinal){
   return { A:"", B:fmt(lastFinal), i1:"",i2:"",i3:"",i4:"", C:fmt(0), TI:fmt(lastFinal),
     e1:"",e2:"",e3:"",e4:"",e5:"", D:fmt(0), TF:fmt(lastFinal),
     __head:"Evento #", __fecha:"Fecha:" };
 }
 
-// Carga el logo como imagen utilizable por jsPDF (o null si falla)
 function cargarLogo(){
   return new Promise(res=>{
     if(!LOGO_URL){ res(null); return; }
@@ -830,13 +809,45 @@ function cargarLogo(){
   });
 }
 
-// Dibuja un bloque (un mes) en el PDF
+// ── PORTADA (página vertical) ──
+function dibujarPortada(doc, b, tipo, logo){
+  const sede  = sedesMap[b.cap] || {};
+  const nom   = sede.nombre || b.cap;
+  const local = sede.local || "";
+  const dia   = sede.dia   || "";
+  const hora  = sede.hora  || "";
+  const W = 215.9;
+
+  doc.setTextColor(0,0,0);
+  doc.setFont(undefined,"bold"); doc.setFontSize(11);
+  doc.text("FRATERNIDAD INTERNACIONAL DE HOMBRES DE NEGOCIOS DEL", W/2, 32, {align:"center"});
+  doc.text("EVANGELIO COMPLETO", W/2, 38, {align:"center"});
+  doc.setFontSize(13);
+  doc.text("FIHNEC - NICARAGUA", W/2, 50, {align:"center"});
+
+  doc.setFontSize(15);
+  doc.text(`INFORME MENSUAL DE ${tipo} DEL MES DE ${MESES_NOMBRE[b.mes].toUpperCase()} ${b.anio}`,
+    W/2, 66, {align:"center", maxWidth: W-26});
+
+  if(logo){
+    const w = 90, h = Math.min(90, 90*(logo.h/logo.w));
+    try{ doc.addImage(logo.data,"PNG",(W-w)/2, 88, w, h); }catch(e){}
+  }
+
+  doc.setFont(undefined,"bold"); doc.setFontSize(15); doc.setTextColor(0,0,0);
+  doc.text(`CAPÍTULO ${nom.toUpperCase()}`, W/2, 196, {align:"center"});
+  if(dia || hora) doc.text(`${dia} ${hora}`.trim().toUpperCase(), W/2, 206, {align:"center"});
+  if(local)       doc.text(local.toUpperCase(), W/2, 216, {align:"center"});
+  doc.text(`CÓDIGO: ${b.cap}`, W/2, 226, {align:"center"});
+}
+
+// ── INFORME DE TESORERÍA (página horizontal) ──
 function dibujarBloquePDF(doc, b, logo){
   const sede = sedesMap[b.cap] || {};
   const nom  = sede.nombre || b.cap;
   const muni = sede.municipio || sede.ciudad || nom;
   const eventos = b.eventos;
-  const W = 279.4, mar = 12;
+  const W = 279.4, mar = 12;   // carta horizontal
 
   if(logo){
     const h = 20, w = 20*(logo.w/logo.h);
@@ -844,11 +855,11 @@ function dibujarBloquePDF(doc, b, logo){
   }
 
   doc.setTextColor(0,0,0); doc.setFont(undefined,"bold");
-  doc.setFontSize(8.5);
+  doc.setFontSize(9.5);
   doc.text("FRATERNIDAD INTERNACIONAL DE HOMBRES DE NEGOCIOS DEL EVANGELIO COMPLETO", W/2, 12, {align:"center"});
-  doc.setFontSize(12);
+  doc.setFontSize(13);
   doc.text("INFORME MENSUAL DE TESORERÍA", W/2, 18.5, {align:"center"});
-  doc.setFontSize(8.5);
+  doc.setFontSize(9.5);
   doc.text(`Capítulo: ${nom}     Código: ${b.cap}     Ciudad y/o Municipio: ${muni}     Mes: ${MESES_NOMBRE[b.mes]}     Año: ${b.anio}`,
     W/2, 25, {align:"center"});
 
@@ -856,12 +867,11 @@ function dibujarBloquePDF(doc, b, logo){
   const lastFinal = parseFloat(eventos[eventos.length-1].saldoFinal)||0;
   cols.push(carryCol(lastFinal));
 
-  const labelW = 54, ncol = cols.length;
-  const colW = Math.min(34, (W-2*mar-labelW)/ncol);
+  const labelW = 60, ncol = cols.length;
+  const colW = Math.min(38, (W-2*mar-labelW)/ncol);
   const rh = 6, hh = 9;
   let y = 30;
 
-  // Encabezado de la tabla
   doc.setFillColor(217,217,217); doc.setDrawColor(120,120,120);
   doc.rect(mar,y,labelW,hh,"FD");
   doc.setTextColor(0,0,0); doc.setFont(undefined,"bold"); doc.setFontSize(8);
@@ -869,12 +879,11 @@ function dibujarBloquePDF(doc, b, logo){
   cols.forEach((c,i)=>{
     const x = mar+labelW+i*colW;
     doc.setFillColor(217,217,217); doc.rect(x,y,colW,hh,"FD");
-    doc.setFontSize(7.5); doc.text(c.__head, x+colW/2, y+3.5, {align:"center"});
-    doc.setFontSize(6);   doc.text(c.__fecha, x+colW/2, y+7,  {align:"center"});
+    doc.setFontSize(8); doc.text(c.__head, x+colW/2, y+3.5, {align:"center"});
+    doc.setFontSize(6.5); doc.text(c.__fecha, x+colW/2, y+7, {align:"center"});
   });
   y += hh;
 
-  // Filas
   FILAS_INFORME.forEach(f=>{
     if(f.header){
       doc.setFillColor(44,44,44); doc.rect(mar,y,labelW+ncol*colW,rh,"F");
@@ -885,7 +894,7 @@ function dibujarBloquePDF(doc, b, logo){
     const color = f.color || [255,255,255];
     doc.setFillColor(...color); doc.setDrawColor(160,160,160);
     doc.rect(mar,y,labelW,rh,"FD");
-    doc.setFont(undefined, f.bold?"bold":"normal"); doc.setFontSize(7); doc.setTextColor(0,0,0);
+    doc.setFont(undefined, f.bold?"bold":"normal"); doc.setFontSize(7.5); doc.setTextColor(0,0,0);
     doc.text(f.label, mar+1.5, y+rh/2+1.5);
     cols.forEach((c,i)=>{
       const x = mar+labelW+i*colW;
@@ -896,12 +905,11 @@ function dibujarBloquePDF(doc, b, logo){
     y += rh;
   });
 
-  // Resumen del mes
   y += 6;
   const saldoIni = parseFloat(eventos[0].saldoInicial)||0;
   const ingMes = eventos.reduce((s,d)=>s+(parseFloat(d.ingresosEvento)||0),0);
   const egrMes = eventos.reduce((s,d)=>s+(parseFloat(d.totalEgresos)||0),0);
-  const resW = 84;
+  const resW = 90;
   const resumen = [
     ["Saldo Inicial del Mes", saldoIni],
     ["Ingresos del Mes",      ingMes],
@@ -919,88 +927,228 @@ function dibujarBloquePDF(doc, b, logo){
   });
   doc.setFont(undefined,"italic"); doc.setFontSize(8);
   doc.text("Nota: el saldo final del mes debe ser igual al saldo del último evento.",
-    mar+resW+8, y+rh+2, { maxWidth: W-(mar+resW+8)-mar });
+    mar+resW+10, y+rh+2, { maxWidth: W-(mar+resW+10)-mar });
 
-  // Firmas
   const ys = yr + 24;
   const fW = (W-2*mar)/3;
   ["Tesorero Capítulo","Presidente del Capítulo","Representante de Campo del Cap."].forEach((f,i)=>{
     const fx = mar+i*fW;
     doc.setDrawColor(0,0,0); doc.setLineWidth(0.4);
-    doc.line(fx+6, ys, fx+fW-6, ys);
-    doc.setFont(undefined,"normal"); doc.setFontSize(8);
+    doc.line(fx+8, ys, fx+fW-8, ys);
+    doc.setFont(undefined,"normal"); doc.setFontSize(9);
     doc.text(f, fx+fW/2, ys+5, {align:"center"});
   });
 }
 
-// BOTÓN: EXPORTAR A PDF (tesorero)
+// ── INFORME DE SECRETARÍA Y EVENTOS EXTERNOS (página horizontal) ──
+function dibujarSecretariaPDF(doc, b, logo){
+  const sede  = sedesMap[b.cap] || {};
+  const nom   = sede.nombre || b.cap;
+  const muni  = sede.municipio || sede.ciudad || nom;
+  const depto = sede.departamento || sede.region || "";
+  const eventos = b.sec;
+  const W = 279.4, mar = 12;
+
+  if(logo){
+    const h = 18, w = 18*(logo.w/logo.h);
+    try{
+      doc.addImage(logo.data,"PNG",mar,8,w,h);
+      doc.addImage(logo.data,"PNG",W-mar-w,8,w,h);
+    }catch(e){}
+  }
+
+  doc.setTextColor(0,0,0); doc.setFont(undefined,"bold");
+  doc.setFontSize(10);
+  doc.text("FRATERNIDAD INTERNACIONAL DE HOMBRES DE NEGOCIOS DEL EVANGELIO COMPLETO", W/2, 13, {align:"center"});
+  doc.setFontSize(11.5);
+  doc.text("INFORME MENSUAL DE SECRETARÍA Y EVENTOS EXTERNOS", W/2, 19.5, {align:"center"});
+
+  doc.setFontSize(9.5); doc.setFont(undefined,"normal");
+  doc.text(`Capítulo: ${nom}          Código: ${b.cap}`, mar, 28);
+  doc.text(`Ciudad y/o Municipio: ${muni}          Mes: ${MESES_NOMBRE[b.mes]}          Año: ${b.anio}`, mar, 34);
+  doc.text(`Departamento: ${depto}`, mar, 40);
+
+  const body = eventos.map(d => [
+    d.eventoNumero||"", d.fecha||"",
+    d.visitas||0, d.miembros||0, d.invitados||0, d.asistencia||0,
+    d.noEventos||0, d.invitadosExt||0
+  ]);
+  const totS = ["Totales","",
+    eventos.reduce((s,d)=>s+(parseFloat(d.visitas)||0),0),
+    eventos.reduce((s,d)=>s+(parseFloat(d.miembros)||0),0),
+    eventos.reduce((s,d)=>s+(parseFloat(d.invitados)||0),0),
+    eventos.reduce((s,d)=>s+(parseFloat(d.asistencia)||0),0),
+    eventos.reduce((s,d)=>s+(parseFloat(d.noEventos)||0),0),
+    eventos.reduce((s,d)=>s+(parseFloat(d.invitadosExt)||0),0),
+  ];
+
+  doc.autoTable({
+    head: [
+      [{content:"S E C R E T A R Í A", colSpan:6, styles:{halign:"center",fillColor:[210,210,210],textColor:[0,0,0],fontStyle:"bold",fontSize:12}},
+       {content:"Eventos Externos", colSpan:2, styles:{halign:"center",fillColor:[210,210,210],textColor:[0,0,0],fontStyle:"bold"}}],
+      ["N°","Fecha","Visitas","Miembros","Invitados por Eventos","Asistencia por Eventos","N°","Invitados"]
+    ],
+    body: body, foot: [totS], startY: 44,
+    styles: { fontSize: 9, halign:"center", lineColor:[120,120,120], lineWidth:0.2 },
+    headStyles: { fillColor:[230,230,230], textColor:[0,0,0], fontStyle:"bold", lineColor:[120,120,120], lineWidth:0.2 },
+    footStyles: { fillColor:[245,245,245], textColor:[0,0,0], fontStyle:"bold" },
+    margin: { left:mar, right:mar },
+  });
+
+  let y = doc.lastAutoTable.finalY + 10;
+
+  // ASISTENCIA A SAEL  /  ASISTENCIA SAEL (dos columnas con líneas en blanco)
+  const colLx = mar, colRx = W/2 + 6;
+  doc.setFont(undefined,"bold"); doc.setFontSize(10); doc.setTextColor(0,0,0);
+  doc.text("ASISTENCIA A SAEL", colLx, y);
+  doc.text("ASISTENCIA SAEL",   colRx, y);
+  y += 6;
+  doc.setFont(undefined,"normal"); doc.setFontSize(9);
+  doc.text("Fecha: ___________________________", colLx, y);
+  doc.text("Fecha: ___________________________", colRx, y);
+  y += 7;
+  doc.setDrawColor(0,0,0); doc.setLineWidth(0.3);
+  for(let i=1;i<=10;i++){
+    doc.text(String(i), colLx, y);
+    doc.line(colLx+7, y, W/2-10, y);
+    doc.text(String(i), colRx, y);
+    doc.line(colRx+7, y, W-mar, y);
+    y += 5.4;
+  }
+
+  y += 8;
+  const fW = (W-2*mar)/3;
+  ["Tesorero Capítulo","Presidente del Capítulo","Representante de Campo del Cap."].forEach((f,i)=>{
+    const fx = mar+i*fW;
+    doc.setDrawColor(0,0,0); doc.setLineWidth(0.4);
+    doc.line(fx+8, y, fx+fW-8, y);
+    doc.setFont(undefined,"normal"); doc.setFontSize(9);
+    doc.text(f, fx+fW/2, y+5, {align:"center"});
+  });
+}
+
+// ── BOTÓN: EXPORTAR A PDF (tesorero) ──
 async function descargarInformePDF(){
-  const bloques = agruparInforme(datosTesoreria);
+  const bloques = agruparMeses();
   if(bloques.length === 0){ alert("No hay datos para exportar."); return; }
   const logo = await cargarLogo();
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation:"landscape", unit:"mm", format:"letter" });
-  bloques.forEach((b,idx)=>{
-    if(idx>0) doc.addPage();
-    dibujarBloquePDF(doc, b, logo);
+  const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"letter" });
+
+  let primera = true;
+  const nuevaPortada = ()=>{ if(!primera){ doc.addPage("letter","portrait"); } primera = false; };
+
+  bloques.forEach(b=>{
+    if(b.tes.length){
+      nuevaPortada();
+      dibujarPortada(doc, b, "TESORERÍA", logo);
+      doc.addPage("letter","landscape");
+      dibujarBloquePDF(doc, b, logo);
+    }
+    if(b.sec.length){
+      nuevaPortada();
+      dibujarPortada(doc, b, "SECRETARÍA", logo);
+      doc.addPage("letter","landscape");
+      dibujarSecretariaPDF(doc, b, logo);
+    }
   });
-  doc.save("informe-tesoreria-fihnec.pdf");
+
+  doc.save("informe-mensual-fihnec.pdf");
 }
 
-// BOTÓN: DESCARGAR EN EXCEL (tesorero, mismo formato)
+// ── BOTÓN: DESCARGAR EN EXCEL (tesorero, mismo formato) ──
 function descargarInformeExcel(){
-  const bloques = agruparInforme(datosTesoreria);
+  const bloques = agruparMeses();
   if(bloques.length === 0){ alert("No hay datos para exportar."); return; }
   const wb = XLSX.utils.book_new();
   const usados = {};
 
-  bloques.forEach(b=>{
-    const sede = sedesMap[b.cap] || {};
-    const nom  = sede.nombre || b.cap;
-    const muni = sede.municipio || sede.ciudad || nom;
-    const eventos = b.eventos;
-    const cols = eventos.map((ev,i)=>colMapInforme(ev,i));
-    const lastFinal = parseFloat(eventos[eventos.length-1].saldoFinal)||0;
-    cols.push(carryCol(lastFinal));
-    const ncol = 1 + cols.length;
-
-    const aoa = [];
-    aoa.push(["FRATERNIDAD INTERNACIONAL DE HOMBRES DE NEGOCIOS DEL EVANGELIO COMPLETO"]);
-    aoa.push(["INFORME MENSUAL DE TESORERÍA"]);
-    aoa.push([`Capítulo: ${nom}`, `Código: ${b.cap}`, `Ciudad y/o Municipio: ${muni}`, `Mes: ${MESES_NOMBRE[b.mes]}`, `Año: ${b.anio}`]);
-    aoa.push([]);
-    aoa.push(["CONCEPTO", ...cols.map(c=>c.__head)]);
-    aoa.push(["",         ...cols.map(c=>c.__fecha)]);
-    FILAS_INFORME.forEach(f=>{
-      if(f.header){ aoa.push([f.header]); return; }
-      aoa.push([f.label, ...cols.map(c=>c[f.id]||"")]);
-    });
-    aoa.push([]);
-    aoa.push(["Saldo Inicial del Mes", fmt(parseFloat(eventos[0].saldoInicial)||0)]);
-    aoa.push(["Ingresos del Mes",      fmt(eventos.reduce((s,d)=>s+(parseFloat(d.ingresosEvento)||0),0))]);
-    aoa.push(["Egresos del Mes",       fmt(eventos.reduce((s,d)=>s+(parseFloat(d.totalEgresos)||0),0))]);
-    aoa.push(["Saldo final del mes C$",fmt(lastFinal)]);
-    aoa.push([]);
-    aoa.push(["Nota: el saldo final del mes debe ser igual al saldo del último evento."]);
-    aoa.push([]); aoa.push([]);
-    aoa.push(["Tesorero Capítulo","","Presidente del Capítulo","","Representante de Campo del Cap."]);
-
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws["!merges"] = [
-      {s:{r:0,c:0}, e:{r:0,c:ncol-1}},
-      {s:{r:1,c:0}, e:{r:1,c:ncol-1}},
-    ];
-    ws["!cols"] = [{wch:30}, ...cols.map(()=>({wch:16}))];
-
-    // Nombre de hoja único y <=31 caracteres
-    let name = `${b.cap} ${MESES_NOMBRE[b.mes].slice(0,3)} ${b.anio}`.substring(0,31);
-    let n = 2;
-    while(usados[name]){ name = (`${b.cap} ${MESES_NOMBRE[b.mes].slice(0,3)} ${b.anio}`).substring(0,28)+" "+(n++); }
+  const nombreHoja = (cap, etq, mes, anio)=>{
+    let base = `${cap} ${etq} ${MESES_NOMBRE[mes].slice(0,3)} ${anio}`.substring(0,31);
+    let n = 2, name = base;
+    while(usados[name]){ name = base.substring(0,28)+" "+(n++); }
     usados[name] = true;
-    XLSX.utils.book_append_sheet(wb, ws, name);
+    return name;
+  };
+
+  bloques.forEach(b=>{
+    const sede  = sedesMap[b.cap] || {};
+    const nom   = sede.nombre || b.cap;
+    const muni  = sede.municipio || sede.ciudad || nom;
+    const depto = sede.departamento || sede.region || "";
+
+    // ── Hoja TESORERÍA ──
+    if(b.tes.length){
+      const cols = b.tes.map((ev,i)=>colMapInforme(ev,i));
+      const lastFinal = parseFloat(b.tes[b.tes.length-1].saldoFinal)||0;
+      cols.push(carryCol(lastFinal));
+      const ncol = 1 + cols.length;
+
+      const aoa = [];
+      aoa.push(["FRATERNIDAD INTERNACIONAL DE HOMBRES DE NEGOCIOS DEL EVANGELIO COMPLETO"]);
+      aoa.push(["INFORME MENSUAL DE TESORERÍA"]);
+      aoa.push([`Capítulo: ${nom}`, `Código: ${b.cap}`, `Ciudad y/o Municipio: ${muni}`, `Mes: ${MESES_NOMBRE[b.mes]}`, `Año: ${b.anio}`]);
+      aoa.push([]);
+      aoa.push(["CONCEPTO", ...cols.map(c=>c.__head)]);
+      aoa.push(["",         ...cols.map(c=>c.__fecha)]);
+      FILAS_INFORME.forEach(f=>{
+        if(f.header){ aoa.push([f.header]); return; }
+        aoa.push([f.label, ...cols.map(c=>c[f.id]||"")]);
+      });
+      aoa.push([]);
+      aoa.push(["Saldo Inicial del Mes", fmt(parseFloat(b.tes[0].saldoInicial)||0)]);
+      aoa.push(["Ingresos del Mes",      fmt(b.tes.reduce((s,d)=>s+(parseFloat(d.ingresosEvento)||0),0))]);
+      aoa.push(["Egresos del Mes",       fmt(b.tes.reduce((s,d)=>s+(parseFloat(d.totalEgresos)||0),0))]);
+      aoa.push(["Saldo final del mes C$",fmt(lastFinal)]);
+      aoa.push([]);
+      aoa.push(["Nota: el saldo final del mes debe ser igual al saldo del último evento."]);
+      aoa.push([]); aoa.push([]);
+      aoa.push(["Tesorero Capítulo","","Presidente del Capítulo","","Representante de Campo del Cap."]);
+
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws["!merges"] = [
+        {s:{r:0,c:0}, e:{r:0,c:ncol-1}},
+        {s:{r:1,c:0}, e:{r:1,c:ncol-1}},
+      ];
+      ws["!cols"] = [{wch:30}, ...cols.map(()=>({wch:16}))];
+      XLSX.utils.book_append_sheet(wb, ws, nombreHoja(b.cap,"Tes",b.mes,b.anio));
+    }
+
+    // ── Hoja SECRETARÍA ──
+    if(b.sec.length){
+      const aoa = [];
+      aoa.push(["FRATERNIDAD INTERNACIONAL DE HOMBRES DE NEGOCIOS DEL EVANGELIO COMPLETO"]);
+      aoa.push(["INFORME MENSUAL DE SECRETARÍA Y EVENTOS EXTERNOS"]);
+      aoa.push([`Capítulo: ${nom}`, `Código: ${b.cap}`]);
+      aoa.push([`Ciudad y/o Municipio: ${muni}`, `Mes: ${MESES_NOMBRE[b.mes]}`, `Año: ${b.anio}`]);
+      aoa.push([`Departamento: ${depto}`]);
+      aoa.push([]);
+      aoa.push(["N°","Fecha","Visitas","Miembros","Invitados por Eventos","Asistencia por Eventos","N° (Ext.)","Invitados (Ext.)"]);
+      b.sec.forEach(d=>{
+        aoa.push([d.eventoNumero||"", d.fecha||"", d.visitas||0, d.miembros||0, d.invitados||0, d.asistencia||0, d.noEventos||0, d.invitadosExt||0]);
+      });
+      aoa.push(["Totales","",
+        b.sec.reduce((s,d)=>s+(parseFloat(d.visitas)||0),0),
+        b.sec.reduce((s,d)=>s+(parseFloat(d.miembros)||0),0),
+        b.sec.reduce((s,d)=>s+(parseFloat(d.invitados)||0),0),
+        b.sec.reduce((s,d)=>s+(parseFloat(d.asistencia)||0),0),
+        b.sec.reduce((s,d)=>s+(parseFloat(d.noEventos)||0),0),
+        b.sec.reduce((s,d)=>s+(parseFloat(d.invitadosExt)||0),0),
+      ]);
+      aoa.push([]); aoa.push([]);
+      aoa.push(["Tesorero Capítulo","","Presidente del Capítulo","","Representante de Campo del Cap."]);
+
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws["!merges"] = [
+        {s:{r:0,c:0}, e:{r:0,c:7}},
+        {s:{r:1,c:0}, e:{r:1,c:7}},
+      ];
+      ws["!cols"] = [{wch:6},{wch:14},{wch:10},{wch:10},{wch:20},{wch:20},{wch:10},{wch:14}];
+      XLSX.utils.book_append_sheet(wb, ws, nombreHoja(b.cap,"Sec",b.mes,b.anio));
+    }
   });
 
-  XLSX.writeFile(wb, "informe-tesoreria-fihnec.xlsx");
+  XLSX.writeFile(wb, "informe-mensual-fihnec.xlsx");
 }
 </script>
 </body>
