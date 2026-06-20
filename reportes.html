@@ -436,230 +436,63 @@ function renderTablas(tData, sData) {
 }
 
 // ── INFORME MENSUAL PDF (supervisores) ──
+// ── INFORME MENSUAL PDF (supervisores) — MISMO FORMATO QUE EL TESORERO ──
+function construirBloque(cap, mes, anio){
+  const evsCap = datosTesoreria
+    .filter(d => d.codigoCapitulo === cap)
+    .sort((a,b)=>fechaDe(a)-fechaDe(b));
+  evsCap.forEach((e,i)=> e.__numero = i+1);
+
+  const tes = evsCap.filter(d => {
+    const f = fechaDe(d);
+    return f.getFullYear() === anio && f.getMonth() === mes;
+  });
+
+  const sec = datosSecretaria
+    .filter(d => {
+      if (d.codigoCapitulo !== cap || !d.fecha) return false;
+      const f = new Date(d.fecha);
+      return f.getFullYear() === anio && f.getMonth() === mes;
+    })
+    .sort((a,b)=>(a.eventoNumero||0)-(b.eventoNumero||0));
+
+  return { cap, anio, mes, tes, sec, eventos: tes };
+}
+
 async function generarInformeMensual() {
   const cap  = document.getElementById("informeCapitulo").value;
   const mes  = parseInt(document.getElementById("informeMes").value);
   const anio = parseInt(document.getElementById("informeAnio").value);
   if (!cap) { alert("Selecciona un capítulo."); return; }
 
-  const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-  const nomMes = meses[mes];
-  const sede = sedesMap[cap] || {};
-  const nomCapitulo = sede.nombre || cap;
-  const zona   = sede.zona   || "";
-  const region = sede.region || "";
+  const b = construirBloque(cap, mes, anio);
+  if (b.tes.length === 0 && b.sec.length === 0) {
+    alert("No hay datos de ese capítulo en el mes y año seleccionados.");
+    return;
+  }
 
-  const evT = datosTesoreria.filter(d => {
-    if (d.codigoCapitulo !== cap) return false;
-    const f = d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha);
-    return f.getFullYear() === anio && f.getMonth() === mes;
-  });
-  const evS = datosSecretaria.filter(d => {
-    if (d.codigoCapitulo !== cap) return false;
-    if (!d.fecha) return false;
-    const f = new Date(d.fecha);
-    return f.getFullYear() === anio && f.getMonth() === mes;
-  });
-
+  const logo = await cargarLogo();
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" });
-  const W = 215.9, mar = 12;
+  const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"letter" });
 
-  doc.setFillColor(139,0,0);
-  doc.rect(mar, 10, W - mar*2, 10, "F");
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(11); doc.setFont(undefined,"bold");
-  doc.text(`INFORME DE TESORERÍA — ${nomMes.toUpperCase()} ${anio}`, W/2, 16.5, {align:"center"});
+  let primera = true;
+  const nuevaPortada = ()=>{ if(!primera){ doc.addPage("letter","portrait"); } primera = false; };
 
-  doc.setFillColor(220,220,220);
-  doc.rect(mar, 21, W - mar*2, 8, "F");
-  doc.setTextColor(0,0,0);
-  doc.setFontSize(10);
-  doc.text(`CAPÍTULO ${nomCapitulo} (${cap})`, W/2, 26.5, {align:"center"});
+  if (b.tes.length) {
+    nuevaPortada();
+    dibujarPortada(doc, b, "TESORERÍA", logo);
+    doc.addPage("letter","landscape");
+    dibujarBloquePDF(doc, b, logo);
+  }
+  if (b.sec.length) {
+    nuevaPortada();
+    dibujarPortada(doc, b, "SECRETARÍA", logo);
+    doc.addPage("letter","landscape");
+    dibujarSecretariaPDF(doc, b, logo);
+  }
 
-  doc.setFontSize(8); doc.setFont(undefined,"normal");
-  doc.text(`Zona: ${zona}   |   Región: ${region}   |   FIHNEC, NICARAGUA`, W/2, 32, {align:"center"});
-
-  let startY = 36;
-  const conceptos = [
-    { label:"SALDO INICIAL DEL MES (A)",     key:"saldoInicial",   bold:true, color:[198,224,180] },
-    { label:"SALDO ANTERIOR DEL EVENTO (B)",  key:"saldoInicial",   bold:false, color:[198,224,180] },
-    { label:"INGRESOS", header:true },
-    { label:"SERVICIOS VENDIDOS",             key:"i1" },
-    { label:"OFRENDAS / SOBRES",              key:"i2" },
-    { label:"DIEZMO / MIEMBROS",              key:"i3" },
-    { label:"OTROS INGRESOS",                 key:"i4" },
-    { label:"INGRESOS DEL EVENTO (C)",        key:"ingresosEvento", bold:true, color:[173,216,230] },
-    { label:"TOTAL INGRESOS (A+B+C)",         key:"disponible",     bold:true },
-    { label:"EGRESOS", header:true },
-    { label:"DIEZMO OFICINA NACIONAL",        key:"e1", color:[255,255,153] },
-    { label:"OFRENDA AL TESTIMONIO",          key:"e2" },
-    { label:"FACTURA",                        key:"e3" },
-    { label:"MEDIAS BECAS",                   key:"e4" },
-    { label:"OTROS GASTOS",                   key:"e5" },
-    { label:"EGRESOS DEL EVENTO (D)",         key:"totalEgresos",   bold:true, color:[255,200,150] },
-    { label:"TOTAL INGRESOS (A+B+C-D)",       key:"saldoFinal",     bold:true },
-  ];
-
-  const colW = Math.min(28, (W - mar*2 - 42) / Math.max(evT.length, 1));
-  const labelW = 42;
-  let y = startY;
-
-  doc.setFillColor(44,44,44); doc.setTextColor(255,255,255);
-  doc.setFontSize(7); doc.setFont(undefined,"bold");
-  doc.rect(mar, y, labelW, 7, "F");
-  doc.text("CONCEPTO", mar+2, y+4.5);
-  evT.forEach((ev, i) => {
-    const fx = mar + labelW + i*colW;
-    doc.rect(fx, y, colW, 7, "F");
-    doc.text(`Evento #${i+1}`, fx + colW/2, y+3, {align:"center"});
-    const fecha = ev.fecha?.toDate ? ev.fecha.toDate() : new Date(ev.fecha);
-    doc.setFontSize(6);
-    doc.text(`Fecha: ${fecha.toLocaleDateString("es-NI")}`, fx + colW/2, y+6.5, {align:"center"});
-    doc.setFontSize(7);
-  });
-  y += 7;
-
-  doc.setFillColor(139,0,0); doc.setTextColor(255,255,255);
-  doc.rect(mar - 8, startY, 7, y - startY + conceptos.length * 6 + 10, "F");
-  doc.setFontSize(9); doc.setFont(undefined,"bold");
-  doc.text(nomMes.toUpperCase(), mar - 4.5, startY + (conceptos.length * 6)/2 + 10, { angle: 90, align:"center" });
-
-  conceptos.forEach(c => {
-    if (c.header) {
-      doc.setFillColor(44,44,44); doc.setTextColor(255,255,255);
-      doc.rect(mar, y, W - mar*2, 6, "F");
-      doc.setFontSize(8); doc.setFont(undefined,"bold");
-      doc.text(c.label, W/2, y+4, {align:"center"});
-      doc.setTextColor(0,0,0);
-      y += 6; return;
-    }
-    const bg = c.color || [255,255,255];
-    doc.setFillColor(...bg);
-    doc.rect(mar, y, labelW, 6, "F");
-    doc.setFontSize(7);
-    doc.setFont(undefined, c.bold ? "bold" : "normal");
-    doc.setTextColor(0,0,0);
-    doc.text(c.label, mar+2, y+4);
-    evT.forEach((ev, i) => {
-      const fx = mar + labelW + i*colW;
-      doc.setFillColor(...bg);
-      doc.rect(fx, y, colW, 6, "F");
-      doc.setTextColor(0,0,0);
-      doc.text(fmt(ev[c.key]), fx + colW - 2, y+4, {align:"right"});
-    });
-    doc.setDrawColor(180,180,180);
-    doc.rect(mar, y, labelW + evT.length * colW, 6);
-    y += 6;
-  });
-
-  doc.setFillColor(139,0,0); doc.setTextColor(255,255,255);
-  doc.rect(mar + labelW + evT.length * colW + 1, startY, 7, y - startY + 4, "F");
-  doc.setFontSize(9); doc.setFont(undefined,"bold");
-  doc.text(String(anio), mar + labelW + evT.length * colW + 4.5, startY + (y-startY)/2, { angle: 90, align:"center" });
-
-  y += 6;
-  const saldoInicialMes = evT.length > 0 ? (parseFloat(evT[0].saldoInicial)||0) : 0;
-  const ingresosMes     = evT.reduce((s,d) => s + (parseFloat(d.ingresosEvento)||0), 0);
-  const egresosMes      = evT.reduce((s,d) => s + (parseFloat(d.totalEgresos)||0), 0);
-  const saldoFinalMes   = evT.length > 0 ? (parseFloat(evT[evT.length-1].saldoFinal)||0) : 0;
-
-  const resW = 80, resX = mar;
-  doc.setFillColor(44,44,44); doc.setTextColor(255,255,255);
-  doc.setFontSize(9); doc.setFont(undefined,"bold");
-  doc.rect(resX, y, resW, 7, "F");
-  doc.text("RESUMEN DEL MES", resX + resW/2, y+5, {align:"center"});
-  y += 7;
-  const resumen = [
-    ["Saldo Inicial del Mes",  fmt(saldoInicialMes)],
-    ["Ingresos del Mes",       fmt(ingresosMes)],
-    ["Egresos del Mes",        fmt(egresosMes)],
-    ["Saldo Final del Mes C$", fmt(saldoFinalMes)],
-  ];
-  resumen.forEach(([label, val], i) => {
-    doc.setFillColor(i%2===0 ? 240:255, i%2===0 ? 240:255, i%2===0 ? 240:255);
-    doc.rect(resX, y, resW, 6, "F");
-    doc.setFontSize(8); doc.setFont(undefined,"normal"); doc.setTextColor(0,0,0);
-    doc.text(label, resX+2, y+4);
-    doc.setFont(undefined,"bold");
-    doc.text(val, resX+resW-2, y+4, {align:"right"});
-    doc.setDrawColor(180,180,180);
-    doc.rect(resX, y, resW, 6);
-    y += 6;
-  });
-
-  y += 4;
-  doc.setFillColor(220,220,220); doc.setTextColor(0,0,0);
-  doc.rect(mar, y, W-mar*2, 7, "F");
-  doc.setFontSize(9); doc.setFont(undefined,"bold");
-  doc.text(`ZONA: ${zona.toUpperCase()}`, W/2, y+5, {align:"center"});
-  y += 12;
-
-  const fW = (W - mar*2) / 3;
-  ["TESORERO/A", "PRESIDENTE DE CAPÍTULO", "REPRESENTANTE DE CAMPO"].forEach((f, i) => {
-    const fx = mar + i * fW;
-    doc.setDrawColor(0,0,0); doc.setLineWidth(0.4);
-    doc.line(fx+4, y+10, fx+fW-4, y+10);
-    doc.setFontSize(8); doc.setFont(undefined,"normal"); doc.setTextColor(0,0,0);
-    doc.text(f, fx + fW/2, y+15, {align:"center"});
-  });
-
-  // ── PÁGINA 2: SECRETARÍA ──
-  doc.addPage();
-  y = 10;
-  doc.setFillColor(139,0,0);
-  doc.rect(mar, y, W-mar*2, 10, "F");
-  doc.setTextColor(255,255,255); doc.setFontSize(11); doc.setFont(undefined,"bold");
-  doc.text("FIHNEC, RACCN - NICARAGUA", W/2, y+6.5, {align:"center"});
-  y += 11;
-  doc.setFillColor(220,220,220); doc.rect(mar, y, W-mar*2, 7, "F");
-  doc.setTextColor(0,0,0); doc.setFontSize(10);
-  doc.text(`CAPÍTULO ${nomCapitulo} (${cap})`, W/2, y+5, {align:"center"});
-  y += 10;
-
-  const headS = [["Evento No.","Fecha","Visitas","Miembros","Invitados por Eventos","Asistencia por Eventos","No. Eventos","Invitados"]];
-  const rowsS = evS.map(d => [
-    d.eventoNumero||"", d.fecha||"",
-    d.visitas||0, d.miembros||0, d.invitados||0,
-    d.asistencia||0, d.noEventos||0, d.invitadosExt||0
-  ]);
-  const totS = ["Totales","",
-    evS.reduce((s,d)=>s+(parseFloat(d.visitas)||0),0),
-    evS.reduce((s,d)=>s+(parseFloat(d.miembros)||0),0),
-    evS.reduce((s,d)=>s+(parseFloat(d.invitados)||0),0),
-    evS.reduce((s,d)=>s+(parseFloat(d.asistencia)||0),0),
-    evS.reduce((s,d)=>s+(parseFloat(d.noEventos)||0),0),
-    evS.reduce((s,d)=>s+(parseFloat(d.invitadosExt)||0),0),
-  ];
-  doc.autoTable({
-    head: [
-      [{content:"S E C R E T A R Í A", colSpan:6, styles:{halign:"center",fillColor:[44,44,44],textColor:255,fontStyle:"bold"}},
-       {content:"EVENTOS EXTERNOS", colSpan:2, styles:{halign:"center",fillColor:[44,44,44],textColor:255,fontStyle:"bold"}}],
-      ...headS
-    ],
-    body: rowsS, foot: [totS], startY: y,
-    styles: { fontSize: 9, halign:"center" },
-    headStyles: { fillColor:[200,164,0], textColor:[34,34,34], fontStyle:"bold" },
-    footStyles: { fillColor:[255,255,153], textColor:[0,0,0], fontStyle:"bold" },
-    alternateRowStyles: { fillColor:[220,220,220] },
-    margin: { left:mar, right:mar },
-  });
-  y = doc.lastAutoTable.finalY + 4;
-  doc.setFillColor(220,220,220); doc.rect(mar, y, W-mar*2, 7, "F");
-  doc.setTextColor(0,0,0); doc.setFontSize(9); doc.setFont(undefined,"bold");
-  doc.text("INFORME DE SECRETARÍA", W/2, y+5, {align:"center"});
-  y += 16;
-  ["SECRETARIO/A", "PRESIDENTE DE CAPÍTULO", "REPRESENTANTE DE CAMPO"].forEach((f, i) => {
-    const fx = mar + i * fW;
-    doc.setDrawColor(0,0,0); doc.setLineWidth(0.4);
-    doc.line(fx+4, y+10, fx+fW-4, y+10);
-    doc.setFontSize(8); doc.setFont(undefined,"normal"); doc.setTextColor(0,0,0);
-    doc.text(f, fx+fW/2, y+15, {align:"center"});
-  });
-
-  doc.save(`informe-mensual-${cap}-${nomMes}-${anio}.pdf`);
+  doc.save(`informe-mensual-${cap}-${MESES_NOMBRE[mes]}-${anio}.pdf`);
 }
-
 // ════════════════════════════════════════════════════
 //  DESCARGA SUPERVISORES (ORIGINAL — tabla corrida)
 // ════════════════════════════════════════════════════
