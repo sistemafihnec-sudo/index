@@ -87,6 +87,38 @@
   </div>
 </div>
 
+<!-- PANEL CONSOLIDADO MENSUAL (solo supervisores) -->
+<div id="panelConsolidado" class="panel" style="display:none;">
+  <strong>Consolidado Mensual</strong>
+  <div style="font-size:12px; color:#666; margin:4px 0 10px;">Descarga el resumen de todos los capítulos de tu alcance, o filtra por un campo.</div>
+  <div class="filtros">
+    <label>Campo
+      <select id="consCampo"><option value="">Todo mi alcance</option></select>
+    </label>
+    <label>Mes
+      <select id="consMes">
+        <option value="0">Enero</option><option value="1">Febrero</option>
+        <option value="2">Marzo</option><option value="3">Abril</option>
+        <option value="4">Mayo</option><option value="5">Junio</option>
+        <option value="6">Julio</option><option value="7">Agosto</option>
+        <option value="8">Septiembre</option><option value="9">Octubre</option>
+        <option value="10">Noviembre</option><option value="11">Diciembre</option>
+      </select>
+    </label>
+    <label>Año <select id="consAnio"></select></label>
+  </div>
+  <div style="margin-top:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+    <span style="font-weight:bold; font-size:13px; min-width:80px;">Tesorería:</span>
+    <button class="btn btn-pdf"   onclick="consolidadoTesoreriaPDF()">⬇ PDF</button>
+    <button class="btn btn-excel" onclick="consolidadoTesoreriaExcel()">⬇ Excel</button>
+  </div>
+  <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+    <span style="font-weight:bold; font-size:13px; min-width:80px;">Secretaría:</span>
+    <button class="btn btn-pdf"   onclick="consolidadoSecretariaPDF()">⬇ PDF</button>
+    <button class="btn btn-excel" onclick="consolidadoSecretariaExcel()">⬇ Excel</button>
+  </div>
+</div>
+
 <!-- DESCARGA PARA SUPERVISORES (configuración original, intacta) -->
 <div class="btns-descarga" id="btnsSupervisor" style="display:none;">
   <button class="btn btn-pdf"   onclick="descargarPDF()">⬇ Descargar PDF</button>
@@ -177,6 +209,7 @@ auth.onAuthStateChanged(async (user) => {
       document.getElementById("panelFiltros").style.display = "block";
       document.getElementById("panelInformeMensual").style.display = "block";
       document.getElementById("btnsSupervisor").style.display = "flex";
+      document.getElementById("panelConsolidado").style.display = "block";
     } else {
       document.getElementById("btnsTesorero").style.display = "flex";
     }
@@ -209,6 +242,8 @@ auth.onAuthStateChanged(async (user) => {
     } else {
       await cargarMisDatos();
     }
+
+    if (esSupervisor) poblarConsolidado();
 
     document.getElementById("mensajeCargando").style.display = "none";
 
@@ -435,9 +470,11 @@ function renderTablas(tData, sData) {
   </tr>` : "";
 }
 
-// ── INFORME MENSUAL PDF (supervisores) ──
 // ── INFORME MENSUAL PDF (supervisores) — MISMO FORMATO QUE EL TESORERO ──
+// Construye un "bloque" (cap + mes + año) con Tesorería y Secretaría,
+// reutilizando las mismas funciones de portada e informes del tesorero.
 function construirBloque(cap, mes, anio){
+  // Numerar los eventos de tesorería de ESE capítulo (por fecha, sobre todos sus eventos)
   const evsCap = datosTesoreria
     .filter(d => d.codigoCapitulo === cap)
     .sort((a,b)=>fechaDe(a)-fechaDe(b));
@@ -493,6 +530,7 @@ async function generarInformeMensual() {
 
   doc.save(`informe-mensual-${cap}-${MESES_NOMBRE[mes]}-${anio}.pdf`);
 }
+
 // ════════════════════════════════════════════════════
 //  DESCARGA SUPERVISORES (ORIGINAL — tabla corrida)
 // ════════════════════════════════════════════════════
@@ -983,6 +1021,380 @@ function descargarInformeExcel(){
 
   XLSX.writeFile(wb, "informe-mensual-fihnec.xlsx");
 }
+
+// ════════════════════════════════════════════════════
+//  CONSOLIDADO MENSUAL (solo supervisores)
+//  Tesorería y Secretaría, por campo o todo el alcance
+// ════════════════════════════════════════════════════
+
+// Formatea número con separador de miles y 2 decimales (sin símbolo)
+function num2(v){ return (parseFloat(v)||0).toLocaleString("es-NI",{minimumFractionDigits:2, maximumFractionDigits:2}); }
+function money(v){ return "C$ " + num2(v); }
+
+// Capítulos que el usuario puede ver según su rol
+function capitulosEnAlcance(){
+  return Object.keys(sedesMap).filter(cap=>{
+    const s = sedesMap[cap] || {};
+    if (rolUsuario === "maestro")  return true;
+    if (rolUsuario === "regional") return s.region === usuarioRegion;
+    if (rolUsuario === "zonal")    return s.zona   === usuarioZona;
+    if (rolUsuario === "campo")    return s.campo  === usuarioCampo;
+    return false;
+  });
+}
+
+// Capítulos tras aplicar el filtro de Campo elegido
+function capitulosConsolidado(){
+  const campoSel = document.getElementById("consCampo").value;
+  let caps = capitulosEnAlcance();
+  if (campoSel) caps = caps.filter(c => (sedesMap[c]||{}).campo === campoSel);
+  return caps;
+}
+
+// Llena los selectores del panel consolidado
+function poblarConsolidado(){
+  const caps   = capitulosEnAlcance();
+  const campos = [...new Set(caps.map(c => (sedesMap[c]||{}).campo).filter(Boolean))].sort();
+  const selCampo = document.getElementById("consCampo");
+  campos.forEach(c => selCampo.innerHTML += `<option value="${c}">${c}</option>`);
+
+  const anios = [...new Set([
+    ...datosTesoreria.map(d => fechaDe(d).getFullYear()),
+    ...datosSecretaria.map(d => d.fecha ? new Date(d.fecha).getFullYear() : NaN)
+  ])].filter(a => !isNaN(a)).sort();
+  const selA = document.getElementById("consAnio");
+  if (anios.length === 0) anios.push(new Date().getFullYear());
+  anios.forEach(a => selA.innerHTML += `<option value="${a}" ${a==new Date().getFullYear()?"selected":""}>${a}</option>`);
+
+  document.getElementById("consMes").value = new Date().getMonth();
+}
+
+// Texto de alcance para el encabezado (región/zona/campo)
+function textoAlcance(datos){
+  const campoSel = document.getElementById("consCampo").value;
+  const regiones = [...new Set(datos.map(d => (sedesMap[d.cap]||{}).region).filter(Boolean))];
+  const zonas    = [...new Set(datos.map(d => (sedesMap[d.cap]||{}).zona).filter(Boolean))];
+  const reg  = regiones.length === 1 ? regiones[0] : (regiones.length ? regiones.length+" regiones" : "—");
+  const zona = zonas.length === 1 ? zonas[0] : (zonas.length ? zonas.length+" zonas" : "—");
+  return { reg, zona, campo: campoSel || "Todos" };
+}
+
+// ── AGREGACIÓN DE DATOS POR CAPÍTULO (un mes) ──
+function agregarTesoreria(caps, mes, anio){
+  return caps.map(cap=>{
+    const evs = datosTesoreria.filter(d=>{
+      if (d.codigoCapitulo !== cap) return false;
+      const f = fechaDe(d);
+      return f.getFullYear()===anio && f.getMonth()===mes;
+    }).sort((a,b)=>fechaDe(a)-fechaDe(b));
+    const sum = k => evs.reduce((s,d)=>s+(parseFloat(d[k])||0),0);
+    return {
+      cap, nombre: (sedesMap[cap]||{}).nombre || cap,
+      esVarones: cap.startsWith("RNH"),
+      i1:sum("i1"), i2:sum("i2"), i3:sum("i3"), i4:sum("i4"),
+      e1:sum("e1"), e2:sum("e2"), e3:sum("e3"), e4:sum("e4"), e5:sum("e5"),
+      saldoIni: evs.length ? (parseFloat(evs[0].saldoInicial)||0) : 0,
+      saldoFin: evs.length ? (parseFloat(evs[evs.length-1].saldoFinal)||0) : 0,
+      tieneDatos: evs.length > 0
+    };
+  }).filter(x => x.tieneDatos)
+    .sort((a,b)=> a.esVarones===b.esVarones ? a.nombre.localeCompare(b.nombre) : (a.esVarones ? -1 : 1));
+}
+
+function agregarSecretaria(caps, mes, anio){
+  return caps.map(cap=>{
+    const evs = datosSecretaria.filter(d=>{
+      if (d.codigoCapitulo !== cap || !d.fecha) return false;
+      const f = new Date(d.fecha);
+      return f.getFullYear()===anio && f.getMonth()===mes;
+    });
+    const sum = k => evs.reduce((s,d)=>s+(parseFloat(d[k])||0),0);
+    return {
+      cap, nombre: (sedesMap[cap]||{}).nombre || cap,
+      esVarones: cap.startsWith("RNH"),
+      visitas:sum("visitas"), miembros:sum("miembros"),
+      invitados:sum("invitados"), asistencia:sum("asistencia"),
+      noEventos:sum("noEventos"), invitadosExt:sum("invitadosExt"),
+      sael: sum("sael"), sal: sum("sal"),   // aún no se capturan → 0
+      tieneDatos: evs.length > 0
+    };
+  }).filter(x => x.tieneDatos)
+    .sort((a,b)=> a.esVarones===b.esVarones ? a.nombre.localeCompare(b.nombre) : (a.esVarones ? -1 : 1));
+}
+
+// Conceptos del consolidado de tesorería
+const CONS_INGRESOS = [["Ofrendas de Evento","i2"],["Otras Ofrendas","i4"],["Venta de Tickets","i1"],["Diezmos/Miembros","i3"]];
+const CONS_EGRESOS  = [["Aporte a la Ofic. Nac. 10%","e1"],["Ofrenda al Testimonio","e2"],["Pago de Restaurante","e3"],["Medias Becas","e4"],["Otros Gastos","e5"]];
+
+function dibujarEncabezadoConsolidado(doc, W, mar, logo, titulo, datos, mes, anio){
+  if(logo){
+    const h = 16, w = 16*(logo.w/logo.h);
+    try{
+      doc.addImage(logo.data,"PNG",mar,8,w,h);
+      doc.addImage(logo.data,"PNG",W-mar-w,8,w,h);
+    }catch(e){}
+  }
+  doc.setTextColor(0,0,0); doc.setFont(undefined,"bold");
+  doc.setFontSize(10);
+  doc.text("FRATERNIDAD INTERNACIONAL DE HOMBRES DE NEGOCIOS DEL EVANGELIO COMPLETO", W/2, 12, {align:"center"});
+  doc.setFontSize(9);
+  doc.text("(FIHNEC)", W/2, 17, {align:"center"});
+  doc.setFontSize(12);
+  doc.text(titulo, W/2, 23.5, {align:"center"});
+  const al = textoAlcance(datos);
+  doc.setFontSize(9); doc.setFont(undefined,"normal");
+  doc.text(`Región: ${al.reg}     Zona: ${al.zona}     Campo: ${al.campo}     Mes: ${MESES_NOMBRE[mes]}     Año: ${anio}`,
+    W/2, 29.5, {align:"center"});
+}
+
+// ── CONSOLIDADO TESORERÍA — PDF (página a la medida, no para imprimir) ──
+function consolidadoTesoreriaPDF(){
+  const mes  = parseInt(document.getElementById("consMes").value);
+  const anio = parseInt(document.getElementById("consAnio").value);
+  const datos = agregarTesoreria(capitulosConsolidado(), mes, anio);
+  if(!datos.length){ alert("No hay datos de tesorería para ese filtro en el mes seleccionado."); return; }
+
+  cargarLogo().then(logo=>{
+    const { jsPDF } = window.jspdf;
+    const mar = 10, labelW = 48, colW = 26;
+    const nV = datos.filter(d=>d.esVarones).length;
+    const nD = datos.length - nV;
+    const nCols = datos.length*2 + 2;
+
+    // Cuerpo (lo armamos antes para conocer el número de filas)
+    const body = [];
+    CONS_INGRESOS.forEach(([label,key])=>{
+      const row=[label];
+      datos.forEach(d=>{ row.push(d[key] ? num2(d[key]) : ""); row.push(""); });
+      row.push(num2(datos.reduce((s,d)=>s+d[key],0))); row.push("");
+      body.push(row);
+    });
+    CONS_EGRESOS.forEach(([label,key])=>{
+      const row=[label];
+      datos.forEach(d=>{ row.push(""); row.push(d[key] ? num2(d[key]) : ""); });
+      row.push(""); row.push(num2(datos.reduce((s,d)=>s+d[key],0)));
+      body.push(row);
+    });
+    let granI=0, granE=0;
+    const totRow=["Totales:"];
+    datos.forEach(d=>{
+      const ti=d.i1+d.i2+d.i3+d.i4, te=d.e1+d.e2+d.e3+d.e4+d.e5;
+      totRow.push(num2(ti)); totRow.push(num2(te));
+      granI+=ti; granE+=te;
+    });
+    totRow.push(num2(granI)); totRow.push(num2(granE));
+
+    // Tamaño de página dinámico: ancho según capítulos
+    const rows = 3 + body.length + 1;
+    let w = mar*2 + labelW + nCols*colW;
+    let h = 36 + rows*9 + 78;
+    if (w < 200) w = 200;
+    const doc = new jsPDF({ unit:"mm", format:[w, h], orientation: w >= h ? "landscape" : "portrait" });
+    const W = doc.internal.pageSize.getWidth();
+
+    dibujarEncabezadoConsolidado(doc, W, mar, logo, "INFORME MENSUAL DE TESORERÍA (CONSOLIDADO)", datos, mes, anio);
+
+    const row1 = [{content:"Concepto", rowSpan:3, styles:{valign:"middle", halign:"left"}}];
+    if(nV) row1.push({content:"VARONES", colSpan:nV*2, styles:{halign:"center", fillColor:[226,239,218]}});
+    if(nD) row1.push({content:"DAMAS",   colSpan:nD*2, styles:{halign:"center", fillColor:[252,228,214]}});
+    row1.push({content:"TOTALES", colSpan:2, rowSpan:2, styles:{halign:"center", fillColor:[217,217,217]}});
+    const row2 = [];
+    datos.forEach(d => row2.push({content:`${d.nombre}\n${d.cap}`, colSpan:2, styles:{halign:"center"}}));
+    const row3 = [];
+    datos.forEach(()=>{ row3.push("Ingresos"); row3.push("Egresos"); });
+    row3.push("Ingresos"); row3.push("Egresos");
+
+    doc.autoTable({
+      head:[row1,row2,row3], body: body, foot:[totRow], startY: 34,
+      styles:{ fontSize:9, cellPadding:1.6, halign:"right", lineColor:[150,150,150], lineWidth:0.1, overflow:"linebreak" },
+      headStyles:{ fillColor:[200,164,0], textColor:[0,0,0], fontStyle:"bold", halign:"center", fontSize:8.5 },
+      footStyles:{ fillColor:[44,44,44], textColor:255, fontStyle:"bold", fontSize:9 },
+      columnStyles:{ 0:{ halign:"left", cellWidth:labelW, fontStyle:"bold" } },
+      margin:{ left:mar, right:mar },
+      tableWidth:"auto",
+    });
+
+    let y = doc.lastAutoTable.finalY + 8;
+    const saldoAnt = datos.reduce((s,d)=>s+d.saldoIni,0);
+    const saldoAct = datos.reduce((s,d)=>s+d.saldoFin,0);
+    const lineas = [
+      ["Ingreso del Mes",      money(granI)],
+      ["Egresos del Mes",      money(granE)],
+      ["Diferencia (+ / -)",   money(granI-granE)],
+      ["Saldo mes anterior",   money(saldoAnt)],
+      ["Saldo actual en Caja", money(saldoAct)],
+    ];
+    const bw=86;
+    lineas.forEach(([l,v])=>{
+      doc.setDrawColor(120,120,120); doc.setFillColor(255,255,255);
+      doc.rect(mar,y,bw*0.55,7,"FD"); doc.rect(mar+bw*0.55,y,bw*0.45,7,"FD");
+      doc.setFont(undefined,"bold"); doc.setFontSize(10); doc.setTextColor(0,0,0);
+      doc.text(l, mar+2, y+4.7);
+      doc.text(v, mar+bw-2, y+4.7, {align:"right"});
+      y+=7;
+    });
+    doc.setFont(undefined,"italic"); doc.setFontSize(9.5);
+    doc.text("Adjuntar copia de Recibo Oficial de caja o del Boucher bancario.", mar+bw+12, doc.lastAutoTable.finalY+15);
+
+    doc.save(`consolidado-tesoreria-${MESES_NOMBRE[mes]}-${anio}.pdf`);
+  });
+}
+
+// ── CONSOLIDADO TESORERÍA — EXCEL ──
+function consolidadoTesoreriaExcel(){
+  const mes  = parseInt(document.getElementById("consMes").value);
+  const anio = parseInt(document.getElementById("consAnio").value);
+  const datos = agregarTesoreria(capitulosConsolidado(), mes, anio);
+  if(!datos.length){ alert("No hay datos de tesorería para ese filtro en el mes seleccionado."); return; }
+
+  const al = textoAlcance(datos);
+  const ncol = 1 + datos.length*2 + 2;
+  const aoa = [];
+  aoa.push(["FRATERNIDAD INTERNACIONAL DE HOMBRES DE NEGOCIOS DEL EVANGELIO COMPLETO (FIHNEC)"]);
+  aoa.push(["INFORME MENSUAL DE TESORERÍA (CONSOLIDADO)"]);
+  aoa.push([`Región: ${al.reg}`, `Zona: ${al.zona}`, `Campo: ${al.campo}`, `Mes: ${MESES_NOMBRE[mes]}`, `Año: ${anio}`]);
+  aoa.push([]);
+
+  const filaCap = ["Concepto"];
+  datos.forEach(d=>{ filaCap.push(`${d.nombre} (${d.cap})`, ""); });
+  filaCap.push("TOTALES","");
+  aoa.push(filaCap);
+
+  const filaIE = [""];
+  datos.forEach(()=>{ filaIE.push("Ingresos","Egresos"); });
+  filaIE.push("Ingresos","Egresos");
+  aoa.push(filaIE);
+
+  CONS_INGRESOS.forEach(([label,key])=>{
+    const row=[label];
+    datos.forEach(d=>{ row.push(d[key]?num2(d[key]):"", ""); });
+    row.push(num2(datos.reduce((s,d)=>s+d[key],0)), "");
+    aoa.push(row);
+  });
+  CONS_EGRESOS.forEach(([label,key])=>{
+    const row=[label];
+    datos.forEach(d=>{ row.push("", d[key]?num2(d[key]):""); });
+    row.push("", num2(datos.reduce((s,d)=>s+d[key],0)));
+    aoa.push(row);
+  });
+  let granI=0, granE=0;
+  const totRow=["Totales:"];
+  datos.forEach(d=>{
+    const ti=d.i1+d.i2+d.i3+d.i4, te=d.e1+d.e2+d.e3+d.e4+d.e5;
+    totRow.push(num2(ti), num2(te)); granI+=ti; granE+=te;
+  });
+  totRow.push(num2(granI), num2(granE));
+  aoa.push(totRow);
+  aoa.push([]);
+  aoa.push(["Ingreso del Mes", num2(granI)]);
+  aoa.push(["Egresos del Mes", num2(granE)]);
+  aoa.push(["Diferencia (+ / -)", num2(granI-granE)]);
+  aoa.push(["Saldo mes anterior", num2(datos.reduce((s,d)=>s+d.saldoIni,0))]);
+  aoa.push(["Saldo actual en Caja", num2(datos.reduce((s,d)=>s+d.saldoFin,0))]);
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const merges = [
+    {s:{r:0,c:0}, e:{r:0,c:ncol-1}},
+    {s:{r:1,c:0}, e:{r:1,c:ncol-1}},
+  ];
+  datos.forEach((d,i)=>{ merges.push({s:{r:4,c:1+i*2}, e:{r:4,c:2+i*2}}); });
+  merges.push({s:{r:4,c:1+datos.length*2}, e:{r:4,c:2+datos.length*2}}); // TOTALES
+  ws["!merges"] = merges;
+  ws["!cols"] = [{wch:26}, ...Array(datos.length*2+2).fill({wch:13})];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, `Tes ${MESES_NOMBRE[mes].slice(0,3)} ${anio}`.substring(0,31));
+  XLSX.writeFile(wb, `consolidado-tesoreria-${MESES_NOMBRE[mes]}-${anio}.xlsx`);
+}
+
+// ── CONSOLIDADO SECRETARÍA — PDF (página a la medida) ──
+function consolidadoSecretariaPDF(){
+  const mes  = parseInt(document.getElementById("consMes").value);
+  const anio = parseInt(document.getElementById("consAnio").value);
+  const datos = agregarSecretaria(capitulosConsolidado(), mes, anio);
+  if(!datos.length){ alert("No hay datos de secretaría para ese filtro en el mes seleccionado."); return; }
+
+  cargarLogo().then(logo=>{
+    const { jsPDF } = window.jspdf;
+    const mar = 12;
+    const w = mar*2 + 52 + 26 + 8*22;          // nombre + código + 8 columnas
+    const h = 40 + (datos.length+3)*9 + 40;
+    const doc = new jsPDF({ unit:"mm", format:[w, h], orientation: w >= h ? "landscape" : "portrait" });
+    const W = doc.internal.pageSize.getWidth();
+
+    dibujarEncabezadoConsolidado(doc, W, mar, logo, "INFORME MENSUAL DE SECRETARÍA Y EVENTOS EXTERNOS (CONSOLIDADO)", datos, mes, anio);
+
+    const body = datos.map(d=>[ d.nombre, d.cap, d.visitas, d.miembros, d.invitados, d.asistencia, d.noEventos, d.invitadosExt, d.sael, d.sal ]);
+    const tot = ["Totales:","",
+      datos.reduce((s,d)=>s+d.visitas,0), datos.reduce((s,d)=>s+d.miembros,0),
+      datos.reduce((s,d)=>s+d.invitados,0), datos.reduce((s,d)=>s+d.asistencia,0),
+      datos.reduce((s,d)=>s+d.noEventos,0), datos.reduce((s,d)=>s+d.invitadosExt,0),
+      datos.reduce((s,d)=>s+d.sael,0), datos.reduce((s,d)=>s+d.sal,0),
+    ];
+
+    doc.autoTable({
+      head:[
+        [{content:"S E C R E T A R Í A", colSpan:6, styles:{halign:"center",fillColor:[230,230,230],textColor:0,fontStyle:"bold"}},
+         {content:"Eventos Externos", colSpan:2, styles:{halign:"center",fillColor:[230,230,230],textColor:0,fontStyle:"bold"}},
+         {content:"Seminarios", colSpan:2, styles:{halign:"center",fillColor:[230,230,230],textColor:0,fontStyle:"bold"}}],
+        ["Capítulo","Código","Visitas","Miembros","Invitados por Eventos","Asistencia por Eventos","No. Eventos","Invitados","SAEL","SAL"]
+      ],
+      body: body, foot:[tot], startY: 34,
+      styles:{ fontSize:10, halign:"center", cellPadding:2, lineColor:[150,150,150], lineWidth:0.1 },
+      headStyles:{ fillColor:[200,164,0], textColor:0, fontStyle:"bold", fontSize:9.5 },
+      footStyles:{ fillColor:[44,44,44], textColor:255, fontStyle:"bold" },
+      columnStyles:{ 0:{halign:"left", cellWidth:52} },
+      margin:{ left:mar, right:mar },
+      tableWidth:"auto",
+    });
+
+    let y = doc.lastAutoTable.finalY + 22;
+    const fW = (W-2*mar)/3;
+    ["Rep. de Campo","Zonal","Departamental"].forEach((f,i)=>{
+      const fx = mar+i*fW;
+      doc.setDrawColor(0,0,0); doc.setLineWidth(0.4);
+      doc.line(fx+10, y, fx+fW-10, y);
+      doc.setFont(undefined,"normal"); doc.setFontSize(10); doc.setTextColor(0,0,0);
+      doc.text(f, fx+fW/2, y+5, {align:"center"});
+    });
+
+    doc.save(`consolidado-secretaria-${MESES_NOMBRE[mes]}-${anio}.pdf`);
+  });
+}
+
+// ── CONSOLIDADO SECRETARÍA — EXCEL ──
+function consolidadoSecretariaExcel(){
+  const mes  = parseInt(document.getElementById("consMes").value);
+  const anio = parseInt(document.getElementById("consAnio").value);
+  const datos = agregarSecretaria(capitulosConsolidado(), mes, anio);
+  if(!datos.length){ alert("No hay datos de secretaría para ese filtro en el mes seleccionado."); return; }
+
+  const al = textoAlcance(datos);
+  const aoa = [];
+  aoa.push(["FRATERNIDAD INTERNACIONAL DE HOMBRES DE NEGOCIOS DEL EVANGELIO COMPLETO (FIHNEC)"]);
+  aoa.push(["INFORME MENSUAL DE SECRETARÍA Y EVENTOS EXTERNOS (CONSOLIDADO)"]);
+  aoa.push([`Región: ${al.reg}`, `Zona: ${al.zona}`, `Campo: ${al.campo}`, `Mes: ${MESES_NOMBRE[mes]}`, `Año: ${anio}`]);
+  aoa.push([]);
+  aoa.push(["Capítulo","Código","Visitas","Miembros","Invitados por Eventos","Asistencia por Eventos","No. Eventos","Invitados","SAEL","SAL"]);
+  datos.forEach(d=> aoa.push([d.nombre,d.cap,d.visitas,d.miembros,d.invitados,d.asistencia,d.noEventos,d.invitadosExt,d.sael,d.sal]));
+  aoa.push(["Totales:","",
+    datos.reduce((s,d)=>s+d.visitas,0), datos.reduce((s,d)=>s+d.miembros,0),
+    datos.reduce((s,d)=>s+d.invitados,0), datos.reduce((s,d)=>s+d.asistencia,0),
+    datos.reduce((s,d)=>s+d.noEventos,0), datos.reduce((s,d)=>s+d.invitadosExt,0),
+    datos.reduce((s,d)=>s+d.sael,0), datos.reduce((s,d)=>s+d.sal,0),
+  ]);
+  aoa.push([]); aoa.push([]);
+  aoa.push(["Rep. de Campo","","Zonal","","Departamental"]);
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!merges"] = [ {s:{r:0,c:0},e:{r:0,c:9}}, {s:{r:1,c:0},e:{r:1,c:9}} ];
+  ws["!cols"] = [{wch:26},{wch:10},{wch:10},{wch:10},{wch:20},{wch:20},{wch:12},{wch:12},{wch:8},{wch:8}];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, `Sec ${MESES_NOMBRE[mes].slice(0,3)} ${anio}`.substring(0,31));
+  XLSX.writeFile(wb, `consolidado-secretaria-${MESES_NOMBRE[mes]}-${anio}.xlsx`);
+}
+
 </script>
 </body>
 </html>
