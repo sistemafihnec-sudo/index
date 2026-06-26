@@ -264,8 +264,9 @@ auth.onAuthStateChanged(async (user) => {
       fijarSelect("filtroRegion", usuarioRegion);
       fijarSelect("filtroZona",   usuarioZona);
 
-    } else {
+} else {
       await cargarMisDatos();
+      poblarFiltroTesorero();
     }
 
     if (esSupervisor) poblarConsolidado();
@@ -922,10 +923,30 @@ function dibujarSecretariaPDF(doc, b, logo){
     doc.text(f, fx+fW/2, y+5, {align:"center"});
   });
 }
+// Lee el filtro Mes/Año del tesorero y devuelve solo los bloques que correspondan
+function bloquesTesoreroFiltrados(){
+  let bloques = agruparMeses();
+  const mes  = document.getElementById("tesMes")  ? document.getElementById("tesMes").value  : "";
+  const anio = document.getElementById("tesAnio") ? document.getElementById("tesAnio").value : "";
+  if (anio !== "") bloques = bloques.filter(b => b.anio == anio);
+  if (mes  !== "") bloques = bloques.filter(b => b.mes  == mes);
+  return bloques;
+}
 
+// Llena el Año y deja Mes/Año actuales por defecto (así no descarga todo)
+function poblarFiltroTesorero(){
+  const anios = [...new Set([
+    ...datosTesoreria.map(d => fechaDe(d).getFullYear()),
+    ...datosSecretaria.map(d => d.fecha ? new Date(d.fecha).getFullYear() : NaN)
+  ])].filter(a => !isNaN(a)).sort();
+  const selA = document.getElementById("tesAnio");
+  if (anios.length === 0) anios.push(new Date().getFullYear());
+  anios.forEach(a => selA.innerHTML += `<option value="${a}" ${a==new Date().getFullYear()?"selected":""}>${a}</option>`);
+  document.getElementById("tesMes").value = new Date().getMonth();
+}
 // ── BOTÓN: EXPORTAR A PDF (tesorero) ──
 async function descargarInformePDF(){
-  const bloques = agruparMeses();
+  const bloques = bloquesTesoreroFiltrados();
   if(bloques.length === 0){ alert("No hay datos para exportar."); return; }
   const logo = await cargarLogo();
   const { jsPDF } = window.jspdf;
@@ -954,7 +975,7 @@ async function descargarInformePDF(){
 
 // ── BOTÓN: DESCARGAR EN EXCEL (tesorero, mismo formato) ──
 function descargarInformeExcel(){
-  const bloques = agruparMeses();
+  const bloques = bloquesTesoreroFiltrados();
   if(bloques.length === 0){ alert("No hay datos para exportar."); return; }
   const wb = XLSX.utils.book_new();
   const usados = {};
