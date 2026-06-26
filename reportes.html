@@ -130,7 +130,25 @@
   <button class="btn btn-pdf"   onclick="descargarPDF()">⬇ Descargar PDF</button>
   <button class="btn btn-excel" onclick="descargarExcel()">⬇ Descargar Excel</button>
 </div>
-
+<!-- FILTRO MES / AÑO PARA TESORERO -->
+<div id="panelFiltroTesorero" class="panel" style="display:none;">
+  <div class="filtros">
+    <label>Mes
+      <select id="tesMes">
+        <option value="">Todos</option>
+        <option value="0">Enero</option><option value="1">Febrero</option>
+        <option value="2">Marzo</option><option value="3">Abril</option>
+        <option value="4">Mayo</option><option value="5">Junio</option>
+        <option value="6">Julio</option><option value="7">Agosto</option>
+        <option value="8">Septiembre</option><option value="9">Octubre</option>
+        <option value="10">Noviembre</option><option value="11">Diciembre</option>
+      </select>
+    </label>
+    <label>Año
+      <select id="tesAnio"><option value="">Todos</option></select>
+    </label>
+  </div>
+</div>
 <!-- DESCARGA PARA TESORERO (formato oficial nuevo) -->
 <div class="btns-descarga" id="btnsTesorero" style="display:none;">
   <button class="btn btn-pdf"   onclick="descargarInformePDF()">⬇ Exportar a PDF (listo para imprimir)</button>
@@ -218,6 +236,7 @@ auth.onAuthStateChanged(async (user) => {
       document.getElementById("panelConsolidado").style.display = "block";
     } else {
       document.getElementById("btnsTesorero").style.display = "flex";
+      document.getElementById("panelFiltroTesorero").style.display = "block";
     }
 
     if (rolUsuario === "maestro") {
