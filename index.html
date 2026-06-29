@@ -68,10 +68,15 @@ auth.onAuthStateChanged(async (user) => {
     (codigoCapitulo ? "Capítulo: " + codigoCapitulo + "  |  " : "") +
     "Rol: " + rol;
 
-  // Ocultar Tesorería y Secretaría a usuarios supervisores
+// Ocultar botones según rol
   if (rol !== "tesorero") {
     document.getElementById("btnTesoreria").style.display = "none";
     document.getElementById("btnSecretaria").style.display = "none";
+    document.getElementById("btnEventos").style.display = "none";
+  }
+  if (rol !== "maestro") {
+    document.getElementById("btnAdminEventos").style.display = "none";
+    document.getElementById("btnMembresia").style.display = "none";
   }
 });
 
