@@ -1047,10 +1047,9 @@ async function descargarInformePDF(){
   let primera = true;
   const nuevaPortada = ()=>{ if(!primera){ doc.addPage("letter","portrait"); } primera = false; };
 
-  bloques.forEach(b=>{
-    if(b.tes.length === 0 && b.sec.length === 0) return;
+for (const b of bloques) {
+    if(b.tes.length === 0 && b.sec.length === 0) continue;
 
-    // ── UNA SOLA PORTADA por capítulo/mes (Tesorería + Secretaría) ──
     nuevaPortada();
     dibujarPortada(doc, b, "", logo);
 
@@ -1062,7 +1061,7 @@ async function descargarInformePDF(){
       doc.addPage("letter","landscape");
       await dibujarSecretariaPDF(doc, b, logo);
     }
-  });
+  }
 
   doc.save("informe-mensual-fihnec.pdf");
 }
