@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subir Membresía - FIHNEC</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f0f0f0; color: #222; min-height: 100vh; }
+  .topbar { background: #2c2c2c; color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; }
+  .topbar h1 { font-size: 16px; letter-spacing: 1px; }
+  .topbar a { color: #c8a400; font-size: 13px; text-decoration: none; }
+  .container { max-width: 760px; margin: 24px auto; padding: 0 16px; }
+  .panel { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .panel-title { font-size: 13px; font-weight: bold; letter-spacing: 1px; color: #2c2c2c; border-bottom: 2px solid #c8a400; padding-bottom: 8px; margin-bottom: 16px; text-transform: uppercase; }
+  .upload-zone { border: 2px dashed #c8a400; border-radius: 10px; padding: 30px; text-align: center; background: #fffbe6; cursor: pointer; }
+  .upload-zone:hover { background: #fff8d6; }
+  .upload-zone p { font-size: 14px; color: #555; margin-top: 8px; }
+  input[type=file] { display: none; }
+  .btn { padding: 9px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; margin-top: 12px; }
+  .btn-subir { background: #2c2c2c; color: #fff; }
+  .btn-subir:disabled { opacity: 0.5; cursor: not-allowed; }
+  .preview table { border-collapse: collapse; width: 100%; font-size: 12px; margin-top: 12px; }
+  .preview th { background: #c8a400; padding: 6px 8px; border: 1px solid #aaa; }
+  .preview td { border: 1px solid #ddd; padding: 5px 8px; }
+  .progress { background: #eee; border-radius: 6px; height: 12px; margin-top: 12px; overflow: hidden; }
+  .progress-bar { background: #27ae60; height: 100%; width: 0%; transition: width 0.3s; border-radius: 6px; }
+  .alert-ok  { background:#e8f8ef; border:1px solid #27ae60; color:#1a7a40; border-radius:6px; padding:10px 14px; font-size:13px; margin-top:10px; }
+  .alert-err { background:#fdecea; border:1px solid #c0392b; color:#922b21; border-radius:6px; padding:10px 14px; font-size:13px; margin-top:10px; }
+  .col-info { font-size: 12px; color: #555; background: #f9f9f9; border-radius: 6px; padding: 12px; margin-bottom: 14px; }
+  .col-info strong { color: #2c2c2c; }
+  #mensajeCargando { text-align:center; padding:40px; color:#888; }
+  .oculto { display:none !important; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>📂 SUBIR BASE DE MEMBRESÍA</h1>
+  <a href="index.html">← Volver al inicio</a>
+</div>
+
+<div class="container">
+  <div id="mensajeCargando">Verificando acceso...</div>
+  <div id="contenido" class="oculto">
+
+    <div class="panel">
+      <div class="panel-title">Formato esperado del Excel</div>
+      <div class="col-info">
+        El archivo debe tener estas columnas (el orden no importa, los nombres sí):
+        <br><br>
+        <strong>nombres</strong> · <strong>apellidos</strong> · <strong>cedula</strong> ·
+        <strong>codigoCapitulo</strong> · <strong>region</strong> · <strong>zona</strong> ·
+        <strong>campo</strong> · <strong>municipio</strong> · <strong>departamento</strong>
+        <br><br>
+        Columnas adicionales serán importadas tal cual. La cédula se usa como identificador único.
+      </div>
+
+      <div class="upload-zone" onclick="document.getElementById('archivoExcel').click()">
+        <div style="font-size:36px;">📊</div>
+        <p>Haz clic aquí para seleccionar el archivo Excel (.xlsx o .xls)</p>
+        <p id="nombreArchivo" style="color:#c8a400; font-weight:bold; margin-top:6px;"></p>
+      </div>
+      <input type="file" id="archivoExcel" accept=".xlsx,.xls" onchange="leerExcel(event)">
+
+      <div id="preview" class="preview oculto"></div>
+
+      <button class="btn btn-subir" id="btnSubir" onclick="subirAFirebase()" disabled>
+        ☁ Subir a Firebase
+      </button>
+      <div class="progress oculto" id="progressWrap">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div id="alertUpload"></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyB1SeqgsMF6qFSEm8M4rlF9QeBP2F2HP4Q",
+  authDomain: "sistema2026-fihnec.firebaseapp.com",
+  projectId: "sistema2026-fihnec"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+let filas = [];
+
+auth.onAuthStateChanged(async user => {
+  if (!user) { window.location.href = "login.html"; return; }
+  const doc = await db.collection("usuarios").doc(user.uid).get();
+  if (!doc.exists || doc.data().rol !== "maestro") {
+    document.getElementById("mensajeCargando").textContent = "Acceso solo para el administrador maestro.";
+    return;
+  }
+  document.getElementById("mensajeCargando").style.display = "none";
+  document.getElementById("contenido").classList.remove("oculto");
+});
+
+function leerExcel(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById("nombreArchivo").textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const wb = XLSX.read(ev.target.result, { type: "binary" });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    filas = XLSX.utils.sheet_to_json(ws, { defval: "" });
+    mostrarPreview(filas.slice(0, 5));
+    document.getElementById("btnSubir").disabled = filas.length === 0;
+  };
+  reader.readAsBinaryString(file);
+}
+
+function mostrarPreview(muestra) {
+  if (!muestra.length) return;
+  const cols = Object.keys(muestra[0]);
+  const wrap = document.getElementById("preview");
+  wrap.classList.remove("oculto");
+  wrap.innerHTML = `<p style="font-size:13px; color:#555; margin-bottom:6px;">Vista previa (primeras 5 filas de <strong>${filas.length}</strong> registros):</p>
+    <div style="overflow-x:auto;"><table>
+      <thead><tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr></thead>
+      <tbody>${muestra.map(r => `<tr>${cols.map(c => `<td>${r[c]||""}</td>`).join("")}</tr>`).join("")}</tbody>
+    </table></div>`;
+}
+
+async function subirAFirebase() {
+  if (!filas.length) return;
+  const btn = document.getElementById("btnSubir");
+  btn.disabled = true;
+  const pw = document.getElementById("progressWrap");
+  const pb = document.getElementById("progressBar");
+  pw.classList.remove("oculto");
+
+  const batch_size = 400;
+  let procesados = 0;
+  const total = filas.length;
+
+  // Subida en lotes
+  for (let i = 0; i < total; i += batch_size) {
+    const lote = db.batch();
+    const chunk = filas.slice(i, i + batch_size);
+    chunk.forEach(fila => {
+      const cedula = String(fila.cedula || fila.CEDULA || "").trim();
+      const id = cedula || `mem_${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
+      const ref = db.collection("membresia").doc(id);
+      const data = {};
+      Object.keys(fila).forEach(k => { data[k.trim().toLowerCase().replace(/\s/g,"_")] = fila[k]; });
+      lote.set(ref, data, { merge: true });
+    });
+    await lote.commit();
+    procesados += chunk.length;
+    pb.style.width = Math.round((procesados / total) * 100) + "%";
+  }
+
+  alerta("alertUpload", `✅ ${total} registros subidos correctamente a Firebase.`, "ok");
+  btn.disabled = false;
+}
+
+function alerta(id, msg, tipo) {
+  const el = document.getElementById(id);
+  el.className = tipo === "ok" ? "alert-ok" : "alert-err";
+  el.textContent = msg;
+}
+</script>
+</body>
+</html>
