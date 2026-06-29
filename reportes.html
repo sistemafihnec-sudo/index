@@ -312,7 +312,19 @@ async function cargarTodos() {
 
 async function cargarPorCampo(clave, valor) {
   const capsPermitidos = Object.entries(sedesMap)
-    .filter(([, s]) => s[clave] === valor)
+    .filter(([, s]) => {
+      if (s[clave] !== valor) return false;
+      // Si es supervisor de campo, también verificar zona y región
+      if (clave === "campo") {
+        if (usuarioZona   && s.zona   !== usuarioZona)   return false;
+        if (usuarioRegion && s.region !== usuarioRegion) return false;
+      }
+      // Si es supervisor zonal, también verificar región
+      if (clave === "zona") {
+        if (usuarioRegion && s.region !== usuarioRegion) return false;
+      }
+      return true;
+    })
     .map(([cod]) => cod);
 
   const [snapT, snapS] = await Promise.all([
