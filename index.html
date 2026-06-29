@@ -12,13 +12,12 @@
   <h2 id="tituloBienvenida">Bienvenido Capitulo -</h2>
   <p id="infoUsuario"></p>
   <div class="grid">
-<div id="btnTesoreria" class="card-btn" onclick="location.href='tesoreria.html'">💰 TESORERÍA</div>
-    <div id="btnSecretaria" class="card-btn" onclick="location.href='secretaria.html'">📋 SECRETARÍA</div>
-    <div id="btnEventos" class="card-btn" onclick="location.href='eventos.html'">📋 ASISTENCIA A EVENTOS</div>
-    <div id="btnAdminEventos" class="card-btn" onclick="location.href='admin-eventos.html'">📅 PROGRAMAR EVENTOS</div>
-    <div id="btnMembresia" class="card-btn" onclick="location.href='subir-membresia.html'">📂 SUBIR MEMBRESÍA</div>
-    <div class="card-btn" onclick="location.href='reportes.html'">📊 REPORTES</div>
-  </div>
+<div id="btnTesoreria" class="card-btn" style="display:none" onclick="location.href='tesoreria.html'">💰 TESORERÍA</div>
+<div id="btnSecretaria" class="card-btn" style="display:none" onclick="location.href='secretaria.html'">📋 SECRETARÍA</div>
+<div id="btnEventos" class="card-btn" style="display:none" onclick="location.href='eventos.html'">📋 ASISTENCIA A EVENTOS</div>
+<div id="btnAdminEventos" class="card-btn" style="display:none" onclick="location.href='admin-eventos.html'">📅 PROGRAMAR EVENTOS</div>
+<div id="btnMembresia" class="card-btn" style="display:none" onclick="location.href='subir-membresia.html'">📂 SUBIR MEMBRESÍA</div>
+<div class="card-btn" onclick="location.href='reportes.html'">📊 REPORTES</div>
   <button onclick="logout()">Cerrar sesión</button>
 </div>
 
@@ -69,14 +68,14 @@ auth.onAuthStateChanged(async (user) => {
     "Rol: " + rol;
 
 // Ocultar botones según rol
-  if (rol !== "tesorero") {
-    document.getElementById("btnTesoreria").style.display = "none";
-    document.getElementById("btnSecretaria").style.display = "none";
-    document.getElementById("btnEventos").style.display = "none";
+if (rol === "tesorero") {
+    document.getElementById("btnTesoreria").style.display = "";
+    document.getElementById("btnSecretaria").style.display = "";
+    document.getElementById("btnEventos").style.display = "";
   }
-  if (rol !== "maestro") {
-    document.getElementById("btnAdminEventos").style.display = "none";
-    document.getElementById("btnMembresia").style.display = "none";
+  if (rol === "maestro") {
+    document.getElementById("btnAdminEventos").style.display = "";
+    document.getElementById("btnMembresia").style.display = "";
   }
 });
 
