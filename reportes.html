@@ -88,7 +88,59 @@
     </div>
   </div>
 </div>
+<!-- PANEL FILTRO DE VISUALIZACIÓN -->
+<div id="panelVisualizacion" class="panel" style="display:none;">
+  <strong>Filtro de Visualización</strong>
+  <div style="font-size:12px; color:#666; margin:4px 0 10px;">Previsualiza los datos antes de descargar.</div>
+  <div class="filtros">
+    <label>Capítulo
+      <select id="vizCapitulo"><option value="">Todos</option></select>
+    </label>
+    <label>Mes
+      <select id="vizMes">
+        <option value="">Todos</option>
+        <option value="0">Enero</option><option value="1">Febrero</option>
+        <option value="2">Marzo</option><option value="3">Abril</option>
+        <option value="4">Mayo</option><option value="5">Junio</option>
+        <option value="6">Julio</option><option value="7">Agosto</option>
+        <option value="8">Septiembre</option><option value="9">Octubre</option>
+        <option value="10">Noviembre</option><option value="11">Diciembre</option>
+      </select>
+    </label>
+    <label>Año <select id="vizAnio"><option value="">Todos</option></select></label>
+    <button class="btn btn-filtrar" onclick="aplicarVizFiltro()">👁 Ver</button>
+  </div>
 
+  <div id="vizResultado" style="display:none; margin-top:16px;">
+    <div class="seccion-titulo">T E S O R E R Í A</div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr>
+          <th>Fecha</th><th>Capítulo</th><th>S. Inicial</th>
+          <th>Servicios</th><th>Ofrendas</th><th>Diezmos</th><th>Otros Ing.</th>
+          <th>Ing. Evento</th><th>Disponible</th>
+          <th>Diezmo Nac.</th><th>Of. Test.</th><th>Factura</th><th>Med. Becas</th><th>Otros G.</th>
+          <th>Total G.</th><th>S. Final</th>
+        </tr></thead>
+        <tbody id="vizCuerpoTesoreria"></tbody>
+        <tfoot id="vizTotalTesoreria"></tfoot>
+      </table>
+    </div>
+
+    <div class="seccion-titulo">S E C R E T A R Í A</div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr>
+          <th>Evento No.</th><th>Fecha</th><th>Capítulo</th>
+          <th>Visitas</th><th>Miembros</th><th>Invitados</th><th>Asistencia</th>
+          <th>No. Ev. Ext.</th><th>Inv. Ext.</th>
+        </tr></thead>
+        <tbody id="vizCuerpoSecretaria"></tbody>
+        <tfoot id="vizTotalSecretaria"></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
 <!-- PANEL CONSOLIDADO MENSUAL (solo supervisores) -->
 <div id="panelConsolidado" class="panel" style="display:none;">
   <strong>Consolidado Mensual</strong>
@@ -1522,7 +1574,100 @@ function consolidadoSecretariaExcel(){
   XLSX.utils.book_append_sheet(wb, ws, `Sec ${MESES_NOMBRE[mes].slice(0,3)} ${anio}`.substring(0,31));
   XLSX.writeFile(wb, `consolidado-secretaria-${MESES_NOMBRE[mes]}-${anio}.xlsx`);
 }
+function poblarVizSelects() {
+  const caps = [...new Set(datosTesoreria.map(d => d.codigoCapitulo).filter(Boolean))].sort();
+  const anios = [...new Set(datosTesoreria.map(d => {
+    const f = fechaDe(d); return f.getFullYear();
+  }))].filter(a => !isNaN(a)).sort();
 
+  const selC = document.getElementById("vizCapitulo");
+  const selA = document.getElementById("vizAnio");
+  selC.innerHTML = '<option value="">Todos</option>';
+  selA.innerHTML = '<option value="">Todos</option>';
+  caps.forEach(c => selC.innerHTML += `<option value="${c}">${c} - ${getNombre(c)}</option>`);
+  anios.forEach(a => selA.innerHTML += `<option value="${a}" ${a == new Date().getFullYear() ? "selected" : ""}>${a}</option>`);
+  document.getElementById("vizMes").value = new Date().getMonth();
+}
+
+function aplicarVizFiltro() {
+  const cap  = document.getElementById("vizCapitulo").value;
+  const mes  = document.getElementById("vizMes").value;
+  const anio = document.getElementById("vizAnio").value;
+
+  let filtT = datosTesoreria;
+  let filtS = datosSecretaria;
+
+  if (cap) {
+    filtT = filtT.filter(d => d.codigoCapitulo === cap);
+    filtS = filtS.filter(d => d.codigoCapitulo === cap);
+  }
+  if (anio || mes !== "") {
+    filtT = filtT.filter(d => {
+      const f = fechaDe(d);
+      if (anio && f.getFullYear() != anio) return false;
+      if (mes !== "" && f.getMonth() != mes) return false;
+      return true;
+    });
+    filtS = filtS.filter(d => {
+      if (!d.fecha) return true;
+      const f = new Date(d.fecha);
+      if (anio && f.getFullYear() != anio) return false;
+      if (mes !== "" && f.getMonth() != mes) return false;
+      return true;
+    });
+  }
+
+  renderVizTablas(filtT, filtS);
+  document.getElementById("vizResultado").style.display = "block";
+}
+
+function renderVizTablas(tData, sData) {
+  const cT = document.getElementById("vizCuerpoTesoreria");
+  cT.innerHTML = "";
+  let tot = { si:0, ie:0, dis:0, tg:0, sf:0 };
+  tData.forEach(d => {
+    cT.innerHTML += `<tr>
+      <td>${fmtF(d.fecha)}</td><td>${d.codigoCapitulo||""}</td>
+      <td>${fmt(d.saldoInicial)}</td><td>${fmt(d.i1)}</td><td>${fmt(d.i2)}</td>
+      <td>${fmt(d.i3)}</td><td>${fmt(d.i4)}</td><td>${fmt(d.ingresosEvento)}</td>
+      <td>${fmt(d.disponible)}</td><td>${fmt(d.e1)}</td><td>${fmt(d.e2)}</td>
+      <td>${fmt(d.e3)}</td><td>${fmt(d.e4)}</td><td>${fmt(d.e5)}</td>
+      <td>${fmt(d.totalEgresos)}</td><td>${fmt(d.saldoFinal)}</td>
+    </tr>`;
+    tot.si  += parseFloat(d.saldoInicial)||0;
+    tot.ie  += parseFloat(d.ingresosEvento)||0;
+    tot.dis += parseFloat(d.disponible)||0;
+    tot.tg  += parseFloat(d.totalEgresos)||0;
+    tot.sf  += parseFloat(d.saldoFinal)||0;
+  });
+  document.getElementById("vizTotalTesoreria").innerHTML = tData.length > 0 ? `<tr class="fila-total" style="display:table-row;">
+    <td colspan="2">TOTALES</td><td>${fmt(tot.si)}</td>
+    <td></td><td></td><td></td><td></td><td>${fmt(tot.ie)}</td><td>${fmt(tot.dis)}</td>
+    <td></td><td></td><td></td><td></td><td></td><td>${fmt(tot.tg)}</td><td>${fmt(tot.sf)}</td>
+  </tr>` : "";
+
+  const cS = document.getElementById("vizCuerpoSecretaria");
+  cS.innerHTML = "";
+  let totS = { v:0, m:0, i:0, a:0, ne:0, ie:0 };
+  sData.forEach(d => {
+    cS.innerHTML += `<tr>
+      <td>${d.eventoNumero||""}</td><td>${d.fecha||""}</td><td>${d.codigoCapitulo||""}</td>
+      <td>${d.visitas||0}</td><td>${d.miembros||0}</td><td>${d.invitados||0}</td>
+      <td>${d.asistencia||0}</td><td>${d.noEventos||0}</td><td>${d.invitadosExt||0}</td>
+    </tr>`;
+    totS.v  += parseFloat(d.visitas)||0;
+    totS.m  += parseFloat(d.miembros)||0;
+    totS.i  += parseFloat(d.invitados)||0;
+    totS.a  += parseFloat(d.asistencia)||0;
+    totS.ne += parseFloat(d.noEventos)||0;
+    totS.ie += parseFloat(d.invitadosExt)||0;
+  });
+  document.getElementById("vizTotalSecretaria").innerHTML = sData.length > 0 ? `<tr class="fila-total" style="display:table-row;">
+    <td colspan="3">TOTALES</td>
+    <td>${totS.v}</td><td>${totS.m}</td><td>${totS.i}</td>
+    <td>${totS.a}</td><td>${totS.ne}</td><td>${totS.ie}</td>
+  </tr>` : "";
+}
 </script>
 </body>
 </html>
