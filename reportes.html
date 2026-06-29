@@ -610,7 +610,7 @@ async function generarInformeMensual() {
   }
   if (b.sec.length) {
     doc.addPage("letter","landscape");
-    dibujarSecretariaPDF(doc, b, logo);
+   await dibujarSecretariaPDF(doc, b, logo);
   }
 
   doc.save(`informe-mensual-${cap}-${MESES_NOMBRE[mes]}-${anio}.pdf`);
@@ -900,7 +900,7 @@ function dibujarBloquePDF(doc, b, logo){
 }
 
 // ── INFORME DE SECRETARÍA Y EVENTOS EXTERNOS (página horizontal) ──
-function dibujarSecretariaPDF(doc, b, logo){
+async function dibujarSecretariaPDF(doc, b, logo){
   const sede  = sedesMap[b.cap] || {};
   const nom   = sede.nombre || b.cap;
   const muni  = sede.municipio || sede.ciudad || nom;
@@ -956,25 +956,55 @@ function dibujarSecretariaPDF(doc, b, logo){
 
   let y = doc.lastAutoTable.finalY + 10;
 
-  // ASISTENCIA A SAEL  /  ASISTENCIA SAEL (dos columnas con líneas en blanco)
+  // ASISTENCIA SAEL / ASISTENCIA SAL — datos desde Firebase
   const colLx = mar, colRx = W/2 + 6;
+  const maxLineas = 10;
+
+  // Cargar asistencia del mes/año/capítulo desde Firestore
+  let listaSAEL = [], listaSAL = [];
+  try {
+    const docId_SAEL = `${b.cap}_SAEL_`;
+    const snapEv = await db.collection("asistenciaEventos")
+      .where("codigoCapitulo","==", b.cap)
+      .get();
+    snapEv.forEach(ev => {
+      const d = ev.data();
+      const f = d.fecha ? new Date(d.fecha) : null;
+      if (!f || f.getFullYear() !== b.anio || f.getMonth() !== b.mes) return;
+      const asis = (d.asistentes || []).map(a => `${a.nombres||""} ${a.apellidos||""}${a.cedula ? " ("+a.cedula+")" : ""}`.trim());
+      if (d.tipo === "SAEL") listaSAEL = listaSAEL.concat(asis);
+      if (d.tipo === "SAL")  listaSAL  = listaSAL.concat(asis);
+    });
+  } catch(e) {}
+
   doc.setFont(undefined,"bold"); doc.setFontSize(10); doc.setTextColor(0,0,0);
-  doc.text("ASISTENCIA A SAEL", colLx, y);
-  doc.text("ASISTENCIA SAEL",   colRx, y);
+  doc.text("ASISTENCIA SAEL", colLx, y);
+  doc.text("ASISTENCIA SAL",  colRx, y);
   y += 6;
   doc.setFont(undefined,"normal"); doc.setFontSize(9);
   doc.text("Fecha: ___________________________", colLx, y);
   doc.text("Fecha: ___________________________", colRx, y);
   y += 7;
   doc.setDrawColor(0,0,0); doc.setLineWidth(0.3);
-  for(let i=1;i<=10;i++){
-    doc.text(String(i), colLx, y);
-    doc.line(colLx+7, y, W/2-10, y);
-    doc.text(String(i), colRx, y);
-    doc.line(colRx+7, y, W-mar, y);
+  for(let i=0; i<maxLineas; i++){
+    const numL = String(i+1), numR = String(i+1);
+    const textoL = listaSAEL[i] || "";
+    const textoR = listaSAL[i]  || "";
+    doc.setFont(undefined,"normal"); doc.setFontSize(9);
+    doc.text(numL, colLx, y);
+    if(textoL){
+      doc.text(textoL, colLx+7, y, { maxWidth: W/2-10-colLx-7 });
+    } else {
+      doc.line(colLx+7, y, W/2-10, y);
+    }
+    doc.text(numR, colRx, y);
+    if(textoR){
+      doc.text(textoR, colRx+7, y, { maxWidth: W-mar-colRx-7 });
+    } else {
+      doc.line(colRx+7, y, W-mar, y);
+    }
     y += 5.4;
   }
-
   y += 8;
   const fW = (W-2*mar)/3;
   ["Tesorero Capítulo","Presidente del Capítulo","Representante de Campo del Cap."].forEach((f,i)=>{
@@ -1030,7 +1060,7 @@ async function descargarInformePDF(){
     }
     if(b.sec.length){
       doc.addPage("letter","landscape");
-      dibujarSecretariaPDF(doc, b, logo);
+      await dibujarSecretariaPDF(doc, b, logo);
     }
   });
 
