@@ -630,7 +630,7 @@ const FILAS_INFORME = [
   {id:"e4", label:"MEDIAS BECAS"},
   {id:"e5", label:"OTROS GASTOS"},
   {id:"D",  label:"EGRESOS DEL EVENTO (D)",        bold:true, color:[248,203,173]},
-  {id:"TF", label:"TOTAL INGRESOS (A+B+C-D)",      bold:true, color:[226,239,218]},
+  {id:"TF", label:"SALDO FINAL",      bold:true, color:[226,239,218]},
 ];
 
 function fechaDe(d){ return d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha); }
@@ -1244,7 +1244,7 @@ const CONS_FILA_STYLE = {
   TI: { color:[217,217,217], scope:"all" },     // TOTAL INGRESOS (A+B+C)
   e1: { color:[255,235,156], scope:"values" },  // DIEZMO OFICINA NACIONAL
   D:  { color:[248,203,173], scope:"values" },  // EGRESOS DEL EVENTO (D)
-  TF: { color:[226,239,218], scope:"all" },     // TOTAL INGRESOS (A+B+C-D)
+  TF: { color:[226,239,218], scope:"all" },     // SALDO FINAL
 };
 // Filas subtotales: siempre muestran su valor aunque sea 0
 const CONS_SUBTOTAL = new Set(["C","TI","D","TF"]);
