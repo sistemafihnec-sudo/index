@@ -267,9 +267,11 @@ auth.onAuthStateChanged(async (user) => {
       fijarSelect("filtroZona",   usuarioZona);
 
 } else {
-      await cargarMisDatos();
-      poblarFiltroTesorero();
-    }
+  await cargarMisDatos();
+  poblarFiltroTesorero();
+  poblarVizSelects();
+  document.getElementById("panelVisualizacion").style.display = "block";
+}
 
     if (esSupervisor) poblarConsolidado();
 
