@@ -93,9 +93,6 @@
   <strong>Filtro de Visualización</strong>
   <div style="font-size:12px; color:#666; margin:4px 0 10px;">Previsualiza los datos antes de descargar.</div>
   <div class="filtros">
-    <label>Capítulo
-      <select id="vizCapitulo"><option value="">Todos</option></select>
-    </label>
     <label>Mes
       <select id="vizMes">
         <option value="">Todos</option>
@@ -1575,32 +1572,23 @@ function consolidadoSecretariaExcel(){
   XLSX.writeFile(wb, `consolidado-secretaria-${MESES_NOMBRE[mes]}-${anio}.xlsx`);
 }
 function poblarVizSelects() {
-  const caps = [...new Set(datosTesoreria.map(d => d.codigoCapitulo).filter(Boolean))].sort();
   const anios = [...new Set(datosTesoreria.map(d => {
     const f = fechaDe(d); return f.getFullYear();
   }))].filter(a => !isNaN(a)).sort();
 
-  const selC = document.getElementById("vizCapitulo");
   const selA = document.getElementById("vizAnio");
-  selC.innerHTML = '<option value="">Todos</option>';
   selA.innerHTML = '<option value="">Todos</option>';
-  caps.forEach(c => selC.innerHTML += `<option value="${c}">${c} - ${getNombre(c)}</option>`);
   anios.forEach(a => selA.innerHTML += `<option value="${a}" ${a == new Date().getFullYear() ? "selected" : ""}>${a}</option>`);
   document.getElementById("vizMes").value = new Date().getMonth();
 }
 
 function aplicarVizFiltro() {
-  const cap  = document.getElementById("vizCapitulo").value;
   const mes  = document.getElementById("vizMes").value;
   const anio = document.getElementById("vizAnio").value;
 
   let filtT = datosTesoreria;
   let filtS = datosSecretaria;
-
-  if (cap) {
-    filtT = filtT.filter(d => d.codigoCapitulo === cap);
-    filtS = filtS.filter(d => d.codigoCapitulo === cap);
-  }
+  
   if (anio || mes !== "") {
     filtT = filtT.filter(d => {
       const f = fechaDe(d);
