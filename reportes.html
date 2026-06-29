@@ -1195,6 +1195,7 @@ function agregarTesoreria(caps, mes, anio){
       esVarones: cap.startsWith("RNH"),
       i1:sum("i1"), i2:sum("i2"), i3:sum("i3"), i4:sum("i4"),
       e1:sum("e1"), e2:sum("e2"), e3:sum("e3"), e4:sum("e4"), e5:sum("e5"),
+      ingEvento:sum("ingresosEvento"), egrEvento:sum("totalEgresos"),
       saldoIni: evs.length ? (parseFloat(evs[0].saldoInicial)||0) : 0,
       saldoFin: evs.length ? (parseFloat(evs[evs.length-1].saldoFinal)||0) : 0,
       tieneDatos: evs.length > 0
@@ -1224,9 +1225,48 @@ function agregarSecretaria(caps, mes, anio){
     .sort((a,b)=> a.esVarones===b.esVarones ? a.nombre.localeCompare(b.nombre) : (a.esVarones ? -1 : 1));
 }
 
-// Conceptos del consolidado de tesorería
-const CONS_INGRESOS = [["Ofrendas de Evento","i2"],["Otras Ofrendas","i4"],["Venta de Tickets","i1"],["Diezmos/Miembros","i3"]];
-const CONS_EGRESOS  = [["Aporte a la Ofic. Nac. 10%","e1"],["Ofrenda al Testimonio","e2"],["Pago de Restaurante","e3"],["Medias Becas","e4"],["Otros Gastos","e5"]];
+// Consolidado de tesorería: usa la MISMA estructura del informe oficial (FILAS_INFORME),
+// una columna por capítulo. Estilos de resalte por concepto:
+const CONS_FILA_STYLE = {
+  C:  { color:[189,215,238], scope:"values" },  // INGRESOS DEL EVENTO (C)
+  TI: { color:[217,217,217], scope:"all" },     // TOTAL INGRESOS (A+B+C)
+  e1: { color:[255,235,156], scope:"values" },  // DIEZMO OFICINA NACIONAL
+  D:  { color:[248,203,173], scope:"values" },  // EGRESOS DEL EVENTO (D)
+  TF: { color:[226,239,218], scope:"all" },     // TOTAL INGRESOS (A+B+C-D)
+};
+// Filas subtotales: siempre muestran su valor aunque sea 0
+const CONS_SUBTOTAL = new Set(["C","TI","D","TF"]);
+
+// Valor numérico de un concepto (FILAS_INFORME) para un capítulo agregado del mes
+function consValorNum(d, id){
+  switch(id){
+    case "A":  return d.saldoIni;                 // Saldo inicial del mes
+    case "B":  return 0;                          // Saldo anterior del evento (no aplica al consolidado)
+    case "i1": return d.i1; case "i2": return d.i2; case "i3": return d.i3; case "i4": return d.i4;
+    case "C":  return d.ingEvento;                // Ingresos del evento (mes)
+    case "TI": return d.saldoIni + d.ingEvento;   // Total ingresos (A+B+C)
+    case "e1": return d.e1; case "e2": return d.e2; case "e3": return d.e3; case "e4": return d.e4; case "e5": return d.e5;
+    case "D":  return d.egrEvento;                // Egresos del evento (mes)
+    case "TF": return d.saldoFin;                 // Total (A+B+C-D) = saldo final
+    default:   return 0;
+  }
+}
+function consCelda(d, id){
+  if(id==="B") return "";
+  const v = consValorNum(d, id);
+  if(!CONS_SUBTOTAL.has(id) && (parseFloat(v)||0)===0) return "";
+  return num2(v);
+}
+function consTotalNum(datos, id){
+  if(id==="B") return 0;
+  return datos.reduce((s,d)=>s+consValorNum(d,id),0);
+}
+function consCeldaTotal(datos, id){
+  if(id==="B") return "";
+  const v = consTotalNum(datos, id);
+  if(!CONS_SUBTOTAL.has(id) && (parseFloat(v)||0)===0) return "";
+  return num2(v);
+}
 
 function dibujarEncabezadoConsolidado(doc, W, mar, logo, titulo, datos, mes, anio){
   if(logo){
@@ -1258,85 +1298,80 @@ function consolidadoTesoreriaPDF(){
 
   cargarLogo().then(logo=>{
     const { jsPDF } = window.jspdf;
-    const mar = 10, labelW = 48, colW = 26;
-    const nV = datos.filter(d=>d.esVarones).length;
-    const nD = datos.length - nV;
-    const nCols = datos.length*2 + 2;
+    const mar = 10, labelW = 60, colW = 26;
+    const ncol = 1 + datos.length + 1;                 // Concepto + capítulos + TOTALES
 
-    // Cuerpo (lo armamos antes para conocer el número de filas)
+    // Cuerpo: reutiliza FILAS_INFORME (mismo formato que el informe oficial)
     const body = [];
-    CONS_INGRESOS.forEach(([label,key])=>{
-      const row=[label];
-      datos.forEach(d=>{ row.push(d[key] ? num2(d[key]) : ""); row.push(""); });
-      row.push(num2(datos.reduce((s,d)=>s+d[key],0))); row.push("");
+    const rowStyle = [];                               // estilo de resalte por fila (o null)
+    FILAS_INFORME.forEach(f=>{
+      if(f.header){
+        body.push([{ content:f.header, colSpan:ncol,
+          styles:{ fillColor:[44,44,44], textColor:255, fontStyle:"bold", halign:"left" } }]);
+        rowStyle.push(null);
+        return;
+      }
+      const row = [{ content:f.label, styles:{ halign:"left", fontStyle: f.bold?"bold":"normal" } }];
+      datos.forEach(d=> row.push(consCelda(d, f.id)));
+      row.push(consCeldaTotal(datos, f.id));
       body.push(row);
+      rowStyle.push(CONS_FILA_STYLE[f.id] || null);
     });
-    CONS_EGRESOS.forEach(([label,key])=>{
-      const row=[label];
-      datos.forEach(d=>{ row.push(""); row.push(d[key] ? num2(d[key]) : ""); });
-      row.push(""); row.push(num2(datos.reduce((s,d)=>s+d[key],0)));
-      body.push(row);
-    });
-    let granI=0, granE=0;
-    const totRow=["Totales:"];
-    datos.forEach(d=>{
-      const ti=d.i1+d.i2+d.i3+d.i4, te=d.e1+d.e2+d.e3+d.e4+d.e5;
-      totRow.push(num2(ti)); totRow.push(num2(te));
-      granI+=ti; granE+=te;
-    });
-    totRow.push(num2(granI)); totRow.push(num2(granE));
 
-    // Tamaño de página dinámico: ancho según capítulos
-    const rows = 3 + body.length + 1;
-    let w = mar*2 + labelW + nCols*colW;
-    let h = 36 + rows*9 + 78;
+    // Tamaño de página dinámico
+    let w = mar*2 + labelW + (datos.length+1)*colW;
     if (w < 200) w = 200;
+    let h = 40 + FILAS_INFORME.length*7.5 + 80;
     const doc = new jsPDF({ unit:"mm", format:[w, h], orientation: w >= h ? "landscape" : "portrait" });
     const W = doc.internal.pageSize.getWidth();
 
     dibujarEncabezadoConsolidado(doc, W, mar, logo, "INFORME MENSUAL DE TESORERÍA (CONSOLIDADO)", datos, mes, anio);
 
-    const row1 = [{content:"Concepto", rowSpan:3, styles:{valign:"middle", halign:"left"}}];
-    if(nV) row1.push({content:"VARONES", colSpan:nV*2, styles:{halign:"center", fillColor:[226,239,218]}});
-    if(nD) row1.push({content:"DAMAS",   colSpan:nD*2, styles:{halign:"center", fillColor:[252,228,214]}});
-    row1.push({content:"TOTALES", colSpan:2, rowSpan:2, styles:{halign:"center", fillColor:[217,217,217]}});
-    const row2 = [];
-    datos.forEach(d => row2.push({content:`${d.nombre}\n${d.cap}`, colSpan:2, styles:{halign:"center"}}));
-    const row3 = [];
-    datos.forEach(()=>{ row3.push("Ingresos"); row3.push("Egresos"); });
-    row3.push("Ingresos"); row3.push("Egresos");
+    const head = [[
+      { content:"CONCEPTO", styles:{ halign:"left" } },
+      ...datos.map(d=>({ content:`CAP. ${d.nombre}\n${d.cap}`, styles:{ halign:"center" } })),
+      { content:"TOTALES", styles:{ halign:"center" } }
+    ]];
 
     doc.autoTable({
-      head:[row1,row2,row3], body: body, foot:[totRow], startY: 34,
+      head: head, body: body, startY: 34,
       styles:{ fontSize:9, cellPadding:1.6, halign:"right", lineColor:[150,150,150], lineWidth:0.1, overflow:"linebreak" },
       headStyles:{ fillColor:[200,164,0], textColor:[0,0,0], fontStyle:"bold", halign:"center", fontSize:8.5 },
-      footStyles:{ fillColor:[44,44,44], textColor:255, fontStyle:"bold", fontSize:9 },
       columnStyles:{ 0:{ halign:"left", cellWidth:labelW, fontStyle:"bold" } },
       margin:{ left:mar, right:mar },
       tableWidth:"auto",
+      didParseCell: (data)=>{
+        if(data.section!=="body") return;
+        const st = rowStyle[data.row.index];
+        if(!st) return;
+        if(st.scope==="all" || data.column.index>0){
+          data.cell.styles.fillColor = st.color;
+        }
+      }
     });
 
+    // Resumen (tal como la imagen)
     let y = doc.lastAutoTable.finalY + 8;
-    const saldoAnt = datos.reduce((s,d)=>s+d.saldoIni,0);
-    const saldoAct = datos.reduce((s,d)=>s+d.saldoFin,0);
+    const sIni = datos.reduce((s,d)=>s+d.saldoIni,0);
+    const ing  = datos.reduce((s,d)=>s+d.ingEvento,0);
+    const egr  = datos.reduce((s,d)=>s+d.egrEvento,0);
+    const sFin = datos.reduce((s,d)=>s+d.saldoFin,0);
     const lineas = [
-      ["Ingreso del Mes",      money(granI)],
-      ["Egresos del Mes",      money(granE)],
-      ["Diferencia (+ / -)",   money(granI-granE)],
-      ["Saldo mes anterior",   money(saldoAnt)],
-      ["Saldo actual en Caja", money(saldoAct)],
+      ["Saldo Inicial del Mes",  sIni],
+      ["Ingresos del Mes",       ing],
+      ["Egresos del Mes",        egr],
+      ["Saldo final del mes C$", sFin],
     ];
-    const bw=86;
+    const bw=92;
     lineas.forEach(([l,v])=>{
-      doc.setDrawColor(120,120,120); doc.setFillColor(255,255,255);
-      doc.rect(mar,y,bw*0.55,7,"FD"); doc.rect(mar+bw*0.55,y,bw*0.45,7,"FD");
+      doc.setDrawColor(120,120,120);
+      doc.setFillColor(226,239,218); doc.rect(mar,y,bw*0.6,7,"FD");
+      doc.setFillColor(255,255,255); doc.rect(mar+bw*0.6,y,bw*0.4,7,"FD");
       doc.setFont(undefined,"bold"); doc.setFontSize(10); doc.setTextColor(0,0,0);
       doc.text(l, mar+2, y+4.7);
-      doc.text(v, mar+bw-2, y+4.7, {align:"right"});
+      doc.text(num2(v), mar+bw-2, y+4.7, {align:"right"});
       y+=7;
     });
-    doc.setFont(undefined,"italic"); doc.setFontSize(9.5);
-    doc.text("Adjuntar copia de Recibo Oficial de caja o del Boucher bancario.", mar+bw+12, doc.lastAutoTable.finalY+15);
 
     doc.save(`consolidado-tesoreria-${MESES_NOMBRE[mes]}-${anio}.pdf`);
   });
@@ -1350,59 +1385,37 @@ function consolidadoTesoreriaExcel(){
   if(!datos.length){ alert("No hay datos de tesorería para ese filtro en el mes seleccionado."); return; }
 
   const al = textoAlcance(datos);
-  const ncol = 1 + datos.length*2 + 2;
+  const ncol = 1 + datos.length + 1;                   // Concepto + capítulos + TOTALES
   const aoa = [];
   aoa.push(["FRATERNIDAD INTERNACIONAL DE HOMBRES DE NEGOCIOS DEL EVANGELIO COMPLETO (FIHNEC)"]);
   aoa.push(["INFORME MENSUAL DE TESORERÍA (CONSOLIDADO)"]);
   aoa.push([`Región: ${al.reg}`, `Zona: ${al.zona}`, `Campo: ${al.campo}`, `Mes: ${MESES_NOMBRE[mes]}`, `Año: ${anio}`]);
   aoa.push([]);
 
-  const filaCap = ["Concepto"];
-  datos.forEach(d=>{ filaCap.push(`${d.nombre} (${d.cap})`, ""); });
-  filaCap.push("TOTALES","");
-  aoa.push(filaCap);
+  // Encabezado: CONCEPTO + un capítulo por columna + TOTALES
+  aoa.push(["CONCEPTO", ...datos.map(d=>`CAP. ${d.nombre} (${d.cap})`), "TOTALES"]);
 
-  const filaIE = [""];
-  datos.forEach(()=>{ filaIE.push("Ingresos","Egresos"); });
-  filaIE.push("Ingresos","Egresos");
-  aoa.push(filaIE);
-
-  CONS_INGRESOS.forEach(([label,key])=>{
-    const row=[label];
-    datos.forEach(d=>{ row.push(d[key]?num2(d[key]):"", ""); });
-    row.push(num2(datos.reduce((s,d)=>s+d[key],0)), "");
+  // Filas reusando FILAS_INFORME
+  FILAS_INFORME.forEach(f=>{
+    if(f.header){ aoa.push([f.header]); return; }
+    const row = [f.label];
+    datos.forEach(d=> row.push(consCelda(d, f.id)));
+    row.push(consCeldaTotal(datos, f.id));
     aoa.push(row);
   });
-  CONS_EGRESOS.forEach(([label,key])=>{
-    const row=[label];
-    datos.forEach(d=>{ row.push("", d[key]?num2(d[key]):""); });
-    row.push("", num2(datos.reduce((s,d)=>s+d[key],0)));
-    aoa.push(row);
-  });
-  let granI=0, granE=0;
-  const totRow=["Totales:"];
-  datos.forEach(d=>{
-    const ti=d.i1+d.i2+d.i3+d.i4, te=d.e1+d.e2+d.e3+d.e4+d.e5;
-    totRow.push(num2(ti), num2(te)); granI+=ti; granE+=te;
-  });
-  totRow.push(num2(granI), num2(granE));
-  aoa.push(totRow);
+
   aoa.push([]);
-  aoa.push(["Ingreso del Mes", num2(granI)]);
-  aoa.push(["Egresos del Mes", num2(granE)]);
-  aoa.push(["Diferencia (+ / -)", num2(granI-granE)]);
-  aoa.push(["Saldo mes anterior", num2(datos.reduce((s,d)=>s+d.saldoIni,0))]);
-  aoa.push(["Saldo actual en Caja", num2(datos.reduce((s,d)=>s+d.saldoFin,0))]);
+  aoa.push(["Saldo Inicial del Mes",  num2(datos.reduce((s,d)=>s+d.saldoIni,0))]);
+  aoa.push(["Ingresos del Mes",       num2(datos.reduce((s,d)=>s+d.ingEvento,0))]);
+  aoa.push(["Egresos del Mes",        num2(datos.reduce((s,d)=>s+d.egrEvento,0))]);
+  aoa.push(["Saldo final del mes C$", num2(datos.reduce((s,d)=>s+d.saldoFin,0))]);
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  const merges = [
+  ws["!merges"] = [
     {s:{r:0,c:0}, e:{r:0,c:ncol-1}},
     {s:{r:1,c:0}, e:{r:1,c:ncol-1}},
   ];
-  datos.forEach((d,i)=>{ merges.push({s:{r:4,c:1+i*2}, e:{r:4,c:2+i*2}}); });
-  merges.push({s:{r:4,c:1+datos.length*2}, e:{r:4,c:2+datos.length*2}}); // TOTALES
-  ws["!merges"] = merges;
-  ws["!cols"] = [{wch:26}, ...Array(datos.length*2+2).fill({wch:13})];
+  ws["!cols"] = [{wch:30}, ...datos.map(()=>({wch:16})), {wch:16}];
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, `Tes ${MESES_NOMBRE[mes].slice(0,3)} ${anio}`.substring(0,31));
