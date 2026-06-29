@@ -120,7 +120,6 @@
           <th>Total G.</th><th>S. Final</th>
         </tr></thead>
         <tbody id="vizCuerpoTesoreria"></tbody>
-        <tfoot id="vizTotalTesoreria"></tfoot>
       </table>
     </div>
 
@@ -133,7 +132,6 @@
           <th>No. Ev. Ext.</th><th>Inv. Ext.</th>
         </tr></thead>
         <tbody id="vizCuerpoSecretaria"></tbody>
-        <tfoot id="vizTotalSecretaria"></tfoot>
       </table>
     </div>
   </div>
@@ -1628,11 +1626,6 @@ function renderVizTablas(tData, sData) {
     tot.tg  += parseFloat(d.totalEgresos)||0;
     tot.sf  += parseFloat(d.saldoFinal)||0;
   });
-  document.getElementById("vizTotalTesoreria").innerHTML = tData.length > 0 ? `<tr class="fila-total" style="display:table-row;">
-    <td colspan="2">TOTALES</td><td>${fmt(tot.si)}</td>
-    <td></td><td></td><td></td><td></td><td>${fmt(tot.ie)}</td><td>${fmt(tot.dis)}</td>
-    <td></td><td></td><td></td><td></td><td></td><td>${fmt(tot.tg)}</td><td>${fmt(tot.sf)}</td>
-  </tr>` : "";
 
   const cS = document.getElementById("vizCuerpoSecretaria");
   cS.innerHTML = "";
@@ -1650,11 +1643,6 @@ function renderVizTablas(tData, sData) {
     totS.ne += parseFloat(d.noEventos)||0;
     totS.ie += parseFloat(d.invitadosExt)||0;
   });
-  document.getElementById("vizTotalSecretaria").innerHTML = sData.length > 0 ? `<tr class="fila-total" style="display:table-row;">
-    <td colspan="3">TOTALES</td>
-    <td>${totS.v}</td><td>${totS.m}</td><td>${totS.i}</td>
-    <td>${totS.a}</td><td>${totS.ne}</td><td>${totS.ie}</td>
-  </tr>` : "";
 }
 </script>
 </body>
