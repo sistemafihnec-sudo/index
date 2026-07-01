@@ -770,9 +770,8 @@ function cargarLogo(){
 function dibujarPortada(doc, b, tipo, logo){
   const sede  = sedesMap[b.cap] || {};
   const nom   = sede.nombre || b.cap;
-  const local = sede.local || "";
-  const dia   = sede.dia   || "";
-  const hora  = sede.hora  || "";
+const local   = sede.local   || "";
+const diaHora = sede.diaHora || "";
   const W = 215.9;
 
   doc.setTextColor(0,0,0);
@@ -795,7 +794,7 @@ function dibujarPortada(doc, b, tipo, logo){
 
   doc.setFont(undefined,"bold"); doc.setFontSize(15); doc.setTextColor(0,0,0);
   doc.text(`CAPÍTULO ${nom.toUpperCase()}`, W/2, 196, {align:"center"});
-  if(dia || hora) doc.text(`${dia} ${hora}`.trim().toUpperCase(), W/2, 206, {align:"center"});
+  if(diaHora) doc.text(diaHora.toUpperCase(), W/2, 206, {align:"center"});
   if(local)       doc.text(local.toUpperCase(), W/2, 216, {align:"center"});
   doc.text(`CÓDIGO: ${b.cap}`, W/2, 226, {align:"center"});
 }
