@@ -491,7 +491,7 @@ function buscarMiembro() {
   }).slice(0, 20);
   if (!encontrados.length) { res.innerHTML = '<div class="search-item" style="color:#aaa;">Sin resultados</div>'; res.classList.remove("oculto"); return; }
   res.innerHTML = encontrados.map((m,i) => `
-    <div class="search-item" onclick="elegirMiembro(${i + '_' + m.id.replace(/[^a-z0-9]/gi,'')})">
+    <div class="search-item" onclick="elegirMiembro(${i})">
       <div><strong>${m.nombres} ${m.apellidos}</strong></div>
       <div class="cedula">${m.cedula||""} &nbsp;|&nbsp; ${m.codigoCapitulo||""}</div>
     </div>`).join("");
@@ -500,9 +500,7 @@ function buscarMiembro() {
   res.classList.remove("oculto");
 }
 
-function elegirMiembro(key) {
-  // key = index_idSanitized, usamos index
-  const idx = parseInt(key.toString().split("_")[0]);
+function elegirMiembro(idx) {
   seleccionado = window._searchCache[idx];
   document.getElementById("seleccionadoInfo").textContent =
     `${seleccionado.nombres} ${seleccionado.apellidos} — ${seleccionado.cedula||"sin cédula"}`;
