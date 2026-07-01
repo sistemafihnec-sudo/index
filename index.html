@@ -67,16 +67,22 @@ auth.onAuthStateChanged(async (user) => {
   document.getElementById("infoUsuario").innerText =
     (codigoCapitulo ? "Capítulo: " + codigoCapitulo + "  |  " : "") +
     "Rol: " + rol;
-
+  
 // Ocultar botones según rol
+const ROLES_SUPERVISOR = ["maestro", "regional", "zonal", "campo"];
+
 if (rol === "tesorero") {
     document.getElementById("btnTesoreria").style.display = "";
     document.getElementById("btnSecretaria").style.display = "";
     document.getElementById("btnEventos").style.display = "";
+    document.getElementById("btnListasEventos").style.display = "";
   }
   if (rol === "maestro") {
     document.getElementById("btnAdminEventos").style.display = "";
     document.getElementById("btnMembresia").style.display = "";
+  }
+  if (ROLES_SUPERVISOR.includes(rol)) {
+    document.getElementById("btnListasEventos").style.display = "";
   }
 });
 
