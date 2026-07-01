@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Listas de Eventos - FIHNEC</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f0f0f0; color: #222; min-height: 100vh; }
+
+  .topbar {
+    background: #2c2c2c; color: #fff;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px;
+  }
+  .topbar h1 { font-size: 16px; letter-spacing: 1px; }
+  .topbar a { color: #c8a400; font-size: 13px; text-decoration: none; }
+
+  .container { max-width: 1000px; margin: 24px auto; padding: 0 16px; }
+
+  .panel {
+    background: #fff; border-radius: 10px;
+    padding: 20px; margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .panel-title {
+    font-size: 13px; font-weight: bold; letter-spacing: 1px;
+    color: #2c2c2c; border-bottom: 2px solid #c8a400;
+    padding-bottom: 8px; margin-bottom: 16px; text-transform: uppercase;
+  }
+
+  /* Tipo de evento */
+  .tipo-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .tipo-btn {
+    padding: 7px 16px; border: 2px solid #ddd; border-radius: 20px;
+    background: #fff; cursor: pointer; font-size: 13px; font-weight: bold;
+    color: #555; transition: all 0.15s;
+  }
+  .tipo-btn:hover { border-color: #c8a400; color: #c8a400; }
+  .tipo-btn.activo { background: #c8a400; border-color: #c8a400; color: #222; }
+
+  .filtros { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 4px; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; min-width: 160px; }
+  .form-group label { font-size: 12px; font-weight: bold; color: #555; }
+  .form-group select {
+    padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px;
+    font-size: 14px; background: #fff; color: #222;
+  }
+
+  .btn { padding: 9px 18px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; transition: opacity 0.15s; }
+  .btn:hover { opacity: 0.85; }
+  .btn-filtrar  { background: #2c2c2c; color: #fff; }
+  .btn-pdf      { background: #c0392b; color: #fff; }
+  .btn-pdf-mini { background: #c8a400; color: #222; padding: 6px 12px; font-size: 12px; }
+  .btn-todos    { background: #27ae60; color: #fff; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th { background: #c8a400; color: #222; padding: 8px 10px; text-align: left; border: 1px solid #aaa; }
+  td { border: 1px solid #ddd; padding: 7px 10px; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .badge { background: #2c2c2c; color: #fff; border-radius: 10px; padding: 2px 9px; font-size: 12px; font-weight: bold; }
+
+  .top-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+
+  #mensajeCargando { text-align: center; padding: 40px; color: #888; font-size: 15px; }
+  .oculto { display: none !important; }
+  .vacio { text-align:center; color:#aaa; padding:24px; }
+
+  @media (max-width: 600px) {
+    .form-group { min-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>📑 LISTAS DE EVENTOS — FIHNEC</h1>
+  <a href="index.html">← Volver al inicio</a>
+</div>
+
+<div class="container">
+  <div id="mensajeCargando">Cargando...</div>
+
+  <div id="contenido" class="oculto">
+
+    <div class="panel">
+      <div class="panel-title">Filtros</div>
+
+      <label style="font-size:12px; font-weight:bold; color:#555; display:block; margin-bottom:8px;">Tipo de Evento</label>
+      <div class="tipo-grid" id="tipoGrid"></div>
+
+      <div class="filtros">
+        <div class="form-group" id="wrapCapitulo">
+          <label>Capítulo</label>
+          <select id="filtroCapitulo"><option value="">Todos</option></select>
+        </div>
+        <div class="form-group">
+          <label>Año</label>
+          <select id="filtroAnio"><option value="">Todos</option></select>
+        </div>
+        <div class="form-group">
+          <label>Mes</label>
+          <select id="filtroMes">
+            <option value="">Todos</option>
+            <option value="0">Enero</option><option value="1">Febrero</option>
+            <option value="2">Marzo</option><option value="3">Abril</option>
+            <option value="4">Mayo</option><option value="5">Junio</option>
+            <option value="6">Julio</option><option value="7">Agosto</option>
+            <option value="8">Septiembre</option><option value="9">Octubre</option>
+            <option value="10">Noviembre</option><option value="11">Diciembre</option>
+          </select>
+        </div>
+        <button class="btn btn-filtrar" onclick="aplicarFiltros()">Filtrar</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="top-actions">
+        <div>
+          <span class="panel-title" style="margin:0; border:none; padding:0;">Eventos</span>
+          <span class="badge" id="totalBadge">0</span>
+        </div>
+        <button class="btn btn-todos" onclick="descargarTodosPDF()">⬇ Descargar todos los filtrados (PDF)</button>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Capítulo</th>
+              <th>Tipo</th>
+              <th>Categoría</th>
+              <th>N° Asistentes</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="cuerpoEventos">
+            <tr><td colspan="6" class="vacio">Sin eventos para los filtros seleccionados</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyB1SeqgsMF6qFSEm8M4rlF9QeBP2F2HP4Q",
+  authDomain: "sistema2026-fihnec.firebaseapp.com",
+  projectId: "sistema2026-fihnec"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+const LOGO_URL = "logo.png";
+const MESES_NOMBRE = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
+  "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const TIPOS_EVENTO = ["SAEL","SAL","Convención Nacional","Avivamiento"];
+const ROLES_SUPERVISOR = ["maestro","regional","zonal","campo"];
+
+let usuarioData   = {};
+let sedesMap      = {};
+let rolUsuario    = "";
+let codigoUsuario = "";
+let usuarioCampo  = "", usuarioZona = "", usuarioRegion = "";
+let esSupervisor  = false;
+
+let eventosAll = [];        // todos los eventos dentro del alcance del usuario
+let eventosFiltrados = [];  // tras aplicar filtros de UI
+let tipoActivo = "";        // "" = Todos
+
+// ── AUTH ──
+auth.onAuthStateChanged(async user => {
+  if (!user) { window.location.href = "login.html"; return; }
+  try {
+    const doc = await db.collection("usuarios").doc(user.uid).get();
+    if (!doc.exists) return;
+    usuarioData   = doc.data();
+    rolUsuario    = usuarioData.rol || "tesorero";
+    codigoUsuario = usuarioData.codigoCapitulo || "";
+    usuarioCampo  = usuarioData.campo  || "";
+    usuarioZona   = usuarioData.zona   || "";
+    usuarioRegion = usuarioData.region || "";
+    esSupervisor  = ROLES_SUPERVISOR.includes(rolUsuario);
+
+    await cargarSedes();
+    await cargarEventos();
+
+    renderTipoGrid();
+    poblarFiltroCapitulo();
+    poblarFiltroAnio();
+
+    if (!esSupervisor) {
+      document.getElementById("wrapCapitulo").classList.add("oculto");
+    }
+
+    eventosFiltrados = eventosAll.slice();
+    renderTabla(eventosFiltrados);
+
+    document.getElementById("mensajeCargando").style.display = "none";
+    document.getElementById("contenido").classList.remove("oculto");
+  } catch (err) {
+    console.error("Error al cargar:", err);
+    document.getElementById("mensajeCargando").textContent = "Error al cargar datos. Verifica tu conexión.";
+  }
+});
+
+// ── SEDES ──
+async function cargarSedes() {
+  const snap = await db.collection("sedes").get();
+  snap.forEach(d => { sedesMap[d.id] = d.data(); });
+}
+
+function capitulosEnAlcance() {
+  return Object.keys(sedesMap).filter(cap => {
+    const s = sedesMap[cap] || {};
+    if (rolUsuario === "maestro")  return true;
+    if (rolUsuario === "regional") return s.region === usuarioRegion;
+    if (rolUsuario === "zonal")    return s.zona   === usuarioZona;
+    if (rolUsuario === "campo")    return s.campo  === usuarioCampo;
+    return false;
+  });
+}
+
+// ── CARGA DE EVENTOS ──
+async function cargarEventos() {
+  if (!esSupervisor) {
+    if (!codigoUsuario) { eventosAll = []; return; }
+    const snap = await db.collection("asistenciaEventos")
+      .where("codigoCapitulo","==",codigoUsuario).get();
+    eventosAll = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+  } else {
+    const caps = capitulosEnAlcance();
+    const snap = await db.collection("asistenciaEventos").get();
+    eventosAll = snap.docs.map(d => ({ id:d.id, ...d.data() }))
+      .filter(e => caps.includes(e.codigoCapitulo));
+  }
+  eventosAll.sort((a,b) => (b.fecha||"").localeCompare(a.fecha||""));
+}
+
+// ── UI: TIPO DE EVENTO ──
+function renderTipoGrid() {
+  const grid = document.getElementById("tipoGrid");
+  grid.innerHTML = "";
+  const btnTodos = document.createElement("button");
+  btnTodos.className = "tipo-btn activo";
+  btnTodos.textContent = "Todos";
+  btnTodos.onclick = () => selTipoBtn("", btnTodos);
+  grid.appendChild(btnTodos);
+
+  TIPOS_EVENTO.forEach(t => {
+    const b = document.createElement("button");
+    b.className = "tipo-btn";
+    b.textContent = t;
+    b.onclick = () => selTipoBtn(t, b);
+    grid.appendChild(b);
+  });
+}
+
+function selTipoBtn(tipo, btnEl) {
+  tipoActivo = tipo;
+  document.querySelectorAll(".tipo-btn").forEach(b => b.classList.remove("activo"));
+  btnEl.classList.add("activo");
+  aplicarFiltros();
+}
+
+// ── UI: SELECTS ──
+function poblarFiltroCapitulo() {
+  const caps = [...new Set(eventosAll.map(e => e.codigoCapitulo).filter(Boolean))].sort();
+  const sel = document.getElementById("filtroCapitulo");
+  caps.forEach(c => {
+    const nom = (sedesMap[c]||{}).nombre || c;
+    sel.innerHTML += `<option value="${c}">${c} - ${nom}</option>`;
+  });
+}
+
+function poblarFiltroAnio() {
+  const anios = [...new Set(eventosAll.map(e => {
+    const f = new Date(e.fecha);
+    return isNaN(f) ? null : f.getFullYear();
+  }).filter(a => a !== null))].sort();
+  const sel = document.getElementById("filtroAnio");
+  anios.forEach(a => sel.innerHTML += `<option value="${a}">${a}</option>`);
+}
+
+// ── FILTRAR ──
+function aplicarFiltros() {
+  const cap  = document.getElementById("filtroCapitulo").value;
+  const anio = document.getElementById("filtroAnio").value;
+  const mes  = document.getElementById("filtroMes").value;
+
+  eventosFiltrados = eventosAll.filter(e => {
+    if (tipoActivo && e.tipo !== tipoActivo) return false;
+    if (cap && e.codigoCapitulo !== cap) return false;
+    if (anio || mes !== "") {
+      const f = new Date(e.fecha);
+      if (isNaN(f)) return false;
+      if (anio && f.getFullYear() != anio) return false;
+      if (mes !== "" && f.getMonth() != mes) return false;
+    }
+    return true;
+  });
+
+  renderTabla(eventosFiltrados);
+}
+
+// ── RENDER TABLA ──
+function renderTabla(lista) {
+  const tbody = document.getElementById("cuerpoEventos");
+  document.getElementById("totalBadge").textContent = lista.length;
+
+  if (!lista.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="vacio">Sin eventos para los filtros seleccionados</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = lista.map((e, i) => {
+    const nomCap = (sedesMap[e.codigoCapitulo]||{}).nombre || e.codigoCapitulo || "";
+    const cat = (e.subtipo && e.subtipo !== e.tipo) ? e.subtipo : "—";
+    const n = (e.asistentes || []).length;
+    return `<tr>
+      <td>${e.fecha||""}</td>
+      <td>${nomCap} <span style="color:#999;">(${e.codigoCapitulo||""})</span></td>
+      <td>${e.tipo||""}</td>
+      <td>${cat}</td>
+      <td>${n}</td>
+      <td><button class="btn btn-pdf-mini" onclick="descargarEventoPDF(${i})">⬇ PDF</button></td>
+    </tr>`;
+  }).join("");
+}
+
+// ── LOGO ──
+function cargarLogo() {
+  return new Promise(res => {
+    if (!LOGO_URL) { res(null); return; }
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        c.getContext("2d").drawImage(img,0,0);
+        res({ data: c.toDataURL("image/png"), w: img.naturalWidth, h: img.naturalHeight });
+      } catch(e) { res(null); }
+    };
+    img.onerror = () => res(null);
+    img.src = LOGO_URL;
+  });
+}
+
+// ── DIBUJAR UN EVENTO EN EL PDF (encabezado + tabla de asistentes) ──
+function dibujarEventoEnPDF(doc, ev, logo) {
+  const sede = sedesMap[ev.codigoCapitulo] || {};
+  const nom  = sede.nombre || ev.codigoCapitulo || "";
+  const cat  = (ev.subtipo && ev.subtipo !== ev.tipo) ? ev.subtipo : "";
+  const W = doc.internal.pageSize.getWidth();
+  const mar = 12;
+
+  if (logo) {
+    const h = 18, w = 18*(logo.w/logo.h);
+    try { doc.addImage(logo.data,"PNG",mar,8,w,h); } catch(e) {}
+  }
+
+  doc.setTextColor(0,0,0); doc.setFont(undefined,"bold");
+  doc.setFontSize(11);
+  doc.text("FRATERNIDAD INTERNACIONAL DE HOMBRES DE NEGOCIOS DEL EVANGELIO COMPLETO", W/2, 13, {align:"center"});
+  doc.setFontSize(13);
+  doc.text("LISTA DE ASISTENCIA", W/2, 20, {align:"center"});
+
+  doc.setFontSize(10); doc.setFont(undefined,"normal");
+  const linea1 = `Capítulo: ${nom} (${ev.codigoCapitulo||""})     Tipo: ${ev.tipo||""}${cat ? " — "+cat : ""}`;
+  const linea2 = `Fecha: ${ev.fecha||""}     Total de asistentes: ${(ev.asistentes||[]).length}`;
+  doc.text(linea1, W/2, 28, {align:"center"});
+  doc.text(linea2, W/2, 34, {align:"center"});
+
+  const body = (ev.asistentes||[]).map((a,i) => [
+    i+1, a.nombres||"", a.apellidos||"", a.cedula||"",
+    a.tipo||"", a.codigoCapitulo||"", a.municipio||"", a.departamento||""
+  ]);
+
+  doc.autoTable({
+    head: [["N°","Nombres","Apellidos","Cédula","Tipo","Cód. Cap.","Municipio","Departamento"]],
+    body: body.length ? body : [["","(sin asistentes registrados)","","","","","",""]],
+    startY: 40,
+    styles: { fontSize: 9, cellPadding: 2, lineColor:[150,150,150], lineWidth:0.1 },
+    headStyles: { fillColor:[200,164,0], textColor:[0,0,0], fontStyle:"bold" },
+    margin: { left: mar, right: mar },
+  });
+
+  let y = doc.lastAutoTable.finalY + 20;
+  const fW = (W-2*mar)/2;
+  ["Secretario del Capítulo","Presidente del Capítulo"].forEach((f,i) => {
+    const fx = mar + i*fW;
+    doc.setDrawColor(0,0,0); doc.setLineWidth(0.4);
+    doc.line(fx+10, y, fx+fW-10, y);
+    doc.setFont(undefined,"normal"); doc.setFontSize(9);
+    doc.text(f, fx+fW/2, y+5, {align:"center"});
+  });
+}
+
+// ── DESCARGAR UN SOLO EVENTO ──
+async function descargarEventoPDF(idx) {
+  const ev = eventosFiltrados[idx];
+  if (!ev) return;
+  const logo = await cargarLogo();
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"letter" });
+  dibujarEventoEnPDF(doc, ev, logo);
+  const catSlug = (ev.subtipo && ev.subtipo !== ev.tipo) ? "-"+ev.subtipo : "";
+  doc.save(`lista-${ev.tipo}${catSlug}-${ev.codigoCapitulo}-${ev.fecha}.pdf`.replace(/\s/g,"_"));
+}
+
+// ── DESCARGAR TODOS LOS FILTRADOS ──
+async function descargarTodosPDF() {
+  if (!eventosFiltrados.length) { alert("No hay eventos para los filtros seleccionados."); return; }
+  const logo = await cargarLogo();
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"letter" });
+
+  eventosFiltrados.forEach((ev, i) => {
+    if (i > 0) doc.addPage("letter","portrait");
+    dibujarEventoEnPDF(doc, ev, logo);
+  });
+
+  const etiquetaTipo = tipoActivo || "todos";
+  doc.save(`listas-eventos-${etiquetaTipo}.pdf`.replace(/\s/g,"_"));
+}
+</script>
+</body>
+</html>
