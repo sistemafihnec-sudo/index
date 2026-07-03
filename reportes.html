@@ -902,7 +902,7 @@ async function dibujarSecretariaPDF(doc, b, logo){
   const sede  = sedesMap[b.cap] || {};
   const nom   = sede.nombre || b.cap;
   const muni  = sede.municipio || sede.ciudad || nom;
-  const depto = sede.departamento || sede.region || "";
+  const region = sede.region || "";
   const eventos = b.sec;
   const W = 279.4, mar = 12;
 
