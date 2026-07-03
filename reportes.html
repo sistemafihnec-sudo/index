@@ -923,7 +923,7 @@ async function dibujarSecretariaPDF(doc, b, logo){
   doc.setFontSize(9.5); doc.setFont(undefined,"normal");
   doc.text(`Capítulo: ${nom}          Código: ${b.cap}`, mar, 28);
   doc.text(`Ciudad y/o Municipio: ${muni}          Mes: ${MESES_NOMBRE[b.mes]}          Año: ${b.anio}`, mar, 34);
-  doc.text(`Departamento: ${depto}`, mar, 40);
+  doc.text(`Región: ${region}`, mar, 40);
 
   const body = eventos.map(d => [
     d.eventoNumero||"", fmtF(d.fecha),
@@ -1083,7 +1083,7 @@ function descargarInformeExcel(){
     const sede  = sedesMap[b.cap] || {};
     const nom   = sede.nombre || b.cap;
     const muni  = sede.municipio || sede.ciudad || nom;
-    const depto = sede.departamento || sede.region || "";
+    const region = sede.region || "";
 
     // ── Hoja TESORERÍA ──
     if(b.tes.length){
@@ -1128,7 +1128,7 @@ function descargarInformeExcel(){
       aoa.push(["INFORME MENSUAL DE SECRETARÍA Y EVENTOS EXTERNOS"]);
       aoa.push([`Capítulo: ${nom}`, `Código: ${b.cap}`]);
       aoa.push([`Ciudad y/o Municipio: ${muni}`, `Mes: ${MESES_NOMBRE[b.mes]}`, `Año: ${b.anio}`]);
-      aoa.push([`Departamento: ${depto}`]);
+      aoa.push([`Región: ${region}`]);
       aoa.push([]);
       aoa.push(["N°","Fecha","Visitas","Miembros","Invitados por Eventos","Asistencia por Eventos","N° (Ext.)","Invitados (Ext.)"]);
       b.sec.forEach(d=>{
