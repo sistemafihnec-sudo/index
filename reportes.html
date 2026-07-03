@@ -544,7 +544,7 @@ function renderTablas(tData, sData) {
   let totS = { v:0,m:0,i:0,a:0,ne:0,ie:0 };
   sData.forEach(d => {
     cS.innerHTML += `<tr>
-      <td>${d.eventoNumero||""}</td><td>${d.fecha||""}</td><td>${d.codigoCapitulo||""}</td>
+      <td>${d.eventoNumero||""}</td><td>${fmtF(d.fecha)}</td><td>${d.codigoCapitulo||""}</td>
       <td>${d.visitas||0}</td><td>${d.miembros||0}</td><td>${d.invitados||0}</td>
       <td>${d.asistencia||0}</td><td>${d.noEventos||0}</td><td>${d.invitadosExt||0}</td>
     </tr>`;
@@ -823,7 +823,6 @@ function dibujarBloquePDF(doc, b, logo){
 
   const cols = eventos.map((ev,i)=>colMapInforme(ev,i));
   const lastFinal = parseFloat(eventos[eventos.length-1].saldoFinal)||0;
-  cols.push(carryCol(lastFinal));
 
   const labelW = 60, ncol = cols.length;
   const colW = Math.min(38, (W-2*mar-labelW)/ncol);
@@ -872,7 +871,7 @@ function dibujarBloquePDF(doc, b, logo){
     ["Saldo Inicial del Mes", saldoIni],
     ["Ingresos del Mes",      ingMes],
     ["Egresos del Mes",       egrMes],
-    ["Saldo final del mes C$",lastFinal],
+    ["Saldo final del mes",   lastFinal],
   ];
   let yr = y;
   resumen.forEach(([l,v])=>{
@@ -880,7 +879,7 @@ function dibujarBloquePDF(doc, b, logo){
     doc.rect(mar,yr,resW*0.62,rh,"FD"); doc.rect(mar+resW*0.62,yr,resW*0.38,rh,"FD");
     doc.setFont(undefined,"bold"); doc.setFontSize(8); doc.setTextColor(0,0,0);
     doc.text(l, mar+2, yr+rh/2+1.5);
-    doc.text(fmt(v), mar+resW-2, yr+rh/2+1.5, {align:"right"});
+    doc.text("C$ "+fmt(v), mar+resW-2, yr+rh/2+1.5, {align:"right"});
     yr += rh;
   });
   doc.setFont(undefined,"italic"); doc.setFontSize(8);
@@ -927,7 +926,7 @@ async function dibujarSecretariaPDF(doc, b, logo){
   doc.text(`Departamento: ${depto}`, mar, 40);
 
   const body = eventos.map(d => [
-    d.eventoNumero||"", d.fecha||"",
+    d.eventoNumero||"", fmtF(d.fecha),
     d.visitas||0, d.miembros||0, d.invitados||0, d.asistencia||0,
     d.noEventos||0, d.invitadosExt||0
   ]);
@@ -1090,7 +1089,6 @@ function descargarInformeExcel(){
     if(b.tes.length){
       const cols = b.tes.map((ev,i)=>colMapInforme(ev,i));
       const lastFinal = parseFloat(b.tes[b.tes.length-1].saldoFinal)||0;
-      cols.push(carryCol(lastFinal));
       const ncol = 1 + cols.length;
 
       const aoa = [];
@@ -1105,10 +1103,10 @@ function descargarInformeExcel(){
         aoa.push([f.label, ...cols.map(c=>c[f.id]||"")]);
       });
       aoa.push([]);
-      aoa.push(["Saldo Inicial del Mes", fmt(parseFloat(b.tes[0].saldoInicial)||0)]);
-      aoa.push(["Ingresos del Mes",      fmt(b.tes.reduce((s,d)=>s+(parseFloat(d.ingresosEvento)||0),0))]);
-      aoa.push(["Egresos del Mes",       fmt(b.tes.reduce((s,d)=>s+(parseFloat(d.totalEgresos)||0),0))]);
-      aoa.push(["Saldo final del mes C$",fmt(lastFinal)]);
+      aoa.push(["Saldo Inicial del Mes", "C$ "+fmt(parseFloat(b.tes[0].saldoInicial)||0)]);
+      aoa.push(["Ingresos del Mes",      "C$ "+fmt(b.tes.reduce((s,d)=>s+(parseFloat(d.ingresosEvento)||0),0))]);
+      aoa.push(["Egresos del Mes",       "C$ "+fmt(b.tes.reduce((s,d)=>s+(parseFloat(d.totalEgresos)||0),0))]);
+      aoa.push(["Saldo final del mes",   "C$ "+fmt(lastFinal)]);
       aoa.push([]);
       aoa.push(["Nota: el saldo final del mes debe ser igual al saldo del último evento."]);
       aoa.push([]); aoa.push([]);
@@ -1134,7 +1132,7 @@ function descargarInformeExcel(){
       aoa.push([]);
       aoa.push(["N°","Fecha","Visitas","Miembros","Invitados por Eventos","Asistencia por Eventos","N° (Ext.)","Invitados (Ext.)"]);
       b.sec.forEach(d=>{
-        aoa.push([d.eventoNumero||"", d.fecha||"", d.visitas||0, d.miembros||0, d.invitados||0, d.asistencia||0, d.noEventos||0, d.invitadosExt||0]);
+        aoa.push([d.eventoNumero||"", fmtF(d.fecha), d.visitas||0, d.miembros||0, d.invitados||0, d.asistencia||0, d.noEventos||0, d.invitadosExt||0]);
       });
       aoa.push(["Totales","",
         b.sec.reduce((s,d)=>s+(parseFloat(d.visitas)||0),0),
@@ -1448,7 +1446,7 @@ function consolidadoTesoreriaPDF(){
       ["Saldo Inicial del Mes",  sIni],
       ["Ingresos del Mes",       ing],
       ["Egresos del Mes",        egr],
-      ["Saldo final del mes C$", sFin],
+      ["Saldo final del mes",    sFin],
     ];
     const bw=92;
     lineas.forEach(([l,v])=>{
@@ -1457,7 +1455,7 @@ function consolidadoTesoreriaPDF(){
       doc.setFillColor(255,255,255); doc.rect(mar+bw*0.6,y,bw*0.4,7,"FD");
       doc.setFont(undefined,"bold"); doc.setFontSize(10); doc.setTextColor(0,0,0);
       doc.text(l, mar+2, y+4.7);
-      doc.text(num2(v), mar+bw-2, y+4.7, {align:"right"});
+      doc.text(money(v), mar+bw-2, y+4.7, {align:"right"});
       y+=7;
     });
 
@@ -1493,10 +1491,10 @@ function consolidadoTesoreriaExcel(){
   });
 
   aoa.push([]);
-  aoa.push(["Saldo Inicial del Mes",  num2(datos.reduce((s,d)=>s+d.saldoIni,0))]);
-  aoa.push(["Ingresos del Mes",       num2(datos.reduce((s,d)=>s+d.ingEvento,0))]);
-  aoa.push(["Egresos del Mes",        num2(datos.reduce((s,d)=>s+d.egrEvento,0))]);
-  aoa.push(["Saldo final del mes C$", num2(datos.reduce((s,d)=>s+d.saldoFin,0))]);
+  aoa.push(["Saldo Inicial del Mes",  money(datos.reduce((s,d)=>s+d.saldoIni,0))]);
+  aoa.push(["Ingresos del Mes",       money(datos.reduce((s,d)=>s+d.ingEvento,0))]);
+  aoa.push(["Egresos del Mes",        money(datos.reduce((s,d)=>s+d.egrEvento,0))]);
+  aoa.push(["Saldo final del mes",    money(datos.reduce((s,d)=>s+d.saldoFin,0))]);
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws["!merges"] = [
@@ -1660,7 +1658,7 @@ function renderVizTablas(tData, sData) {
   let totS = { v:0, m:0, i:0, a:0, ne:0, ie:0 };
   sData.forEach(d => {
     cS.innerHTML += `<tr>
-      <td>${d.eventoNumero||""}</td><td>${d.fecha||""}</td><td>${d.codigoCapitulo||""}</td>
+      <td>${d.eventoNumero||""}</td><td>${fmtF(d.fecha)}</td><td>${d.codigoCapitulo||""}</td>
       <td>${d.visitas||0}</td><td>${d.miembros||0}</td><td>${d.invitados||0}</td>
       <td>${d.asistencia||0}</td><td>${d.noEventos||0}</td><td>${d.invitadosExt||0}</td>
     </tr>`;
