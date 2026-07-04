@@ -1429,8 +1429,17 @@ function capitulosEnAlcance(){
     const s = sedesMap[cap] || {};
     if (rolUsuario === "maestro")  return true;
     if (rolUsuario === "regional") return s.region === usuarioRegion;
-    if (rolUsuario === "zonal")    return s.zona   === usuarioZona;
-    if (rolUsuario === "campo")    return s.campo  === usuarioCampo;
+    if (rolUsuario === "zonal") {
+      if (s.zona !== usuarioZona) return false;
+      if (usuarioRegion && s.region !== usuarioRegion) return false;
+      return true;
+    }
+    if (rolUsuario === "campo") {
+      if (s.campo !== usuarioCampo) return false;
+      if (usuarioZona   && s.zona   !== usuarioZona)   return false;
+      if (usuarioRegion && s.region !== usuarioRegion) return false;
+      return true;
+    }
     return false;
   });
 }
