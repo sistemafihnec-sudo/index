@@ -46,6 +46,76 @@
 <body>
 <h2>REPORTES</h2>
 
+<div id="mensajeCargando">Cargando datos...</div>
+
+<!-- ══════════════════════════════════════════════════════
+     1. PANEL DE AVANCE — supervisores (maestro, regional,
+     zonal, campo). Va primero en la página.
+     ══════════════════════════════════════════════════════ -->
+<div id="panelAvanceSupervisor" class="panel" style="display:none;">
+  <strong>Panel de Avance — Reporte Mensual por Capítulo</strong>
+  <div style="font-size:12px; color:#666; margin:4px 0 12px;">Estado de ingreso de datos de todos los capítulos de tu alcance. Usa los filtros para acotar por región, zona o campo.</div>
+
+  <div class="filtros" style="margin-bottom:14px;">
+    <label id="wrapAvRegion" style="display:none;">Región
+      <select id="avRegion" onchange="avanceFiltrarZonas()"><option value="">Todas</option></select>
+    </label>
+    <label id="wrapAvZona" style="display:none;">Zona
+      <select id="avZona" onchange="avanceFiltrarCampos()"><option value="">Todas</option></select>
+    </label>
+    <label>Campo
+      <select id="avCampo" onchange="renderPanelAvance()"><option value="">Todo mi alcance</option></select>
+    </label>
+    <label>Mes
+      <select id="avMes" onchange="renderPanelAvance()">
+        <option value="0">Enero</option><option value="1">Febrero</option>
+        <option value="2">Marzo</option><option value="3">Abril</option>
+        <option value="4">Mayo</option><option value="5">Junio</option>
+        <option value="6">Julio</option><option value="7">Agosto</option>
+        <option value="8">Septiembre</option><option value="9">Octubre</option>
+        <option value="10">Noviembre</option><option value="11">Diciembre</option>
+      </select>
+    </label>
+    <label>Año <select id="avAnio" onchange="renderPanelAvance()"></select></label>
+  </div>
+
+  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:6px;">
+    <div class="stat-card"><p class="lbl">Capítulos en alcance</p><p class="val" id="avStatTotal">0</p></div>
+    <div class="stat-card"><p class="lbl">Reporte completo</p><p class="val" id="avStatCompleto" style="color:#2e5c1a;">0</p></div>
+    <div class="stat-card"><p class="lbl">Reporte parcial</p><p class="val" id="avStatParcial" style="color:#8a6d00;">0</p></div>
+    <div class="stat-card"><p class="lbl">Pendientes</p><p class="val" id="avStatPendiente" style="color:#a3311d;">0</p></div>
+    <div class="stat-card"><p class="lbl">% Avance</p><p class="val" id="avStatPct">0%</p></div>
+  </div>
+  <div class="progreso-barra"><div id="avBarra" style="width:0%;"></div></div>
+
+  <div id="avGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:10px;"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     RESUMEN GENERAL — tesorero
+     ══════════════════════════════════════════════════════ -->
+<div id="panelResumenTesorero" class="panel" style="display:none;">
+  <strong>Resumen General de mi Capítulo</strong>
+  <div style="font-size:12px; color:#666; margin:4px 0 12px;">Vista general de finanzas y asistencia con todos tus datos ingresados. El detalle línea por línea sigue disponible abajo.</div>
+  <div style="display:flex; gap:12px; flex-wrap:wrap;">
+    <div class="stat-card"><p class="lbl">Saldo actual</p><p class="val" id="rtSaldoActual">C$ 0.00</p></div>
+    <div class="stat-card"><p class="lbl">Ingresos totales</p><p class="val" id="rtIngresos">C$ 0.00</p></div>
+    <div class="stat-card"><p class="lbl">Egresos totales</p><p class="val" id="rtEgresos">C$ 0.00</p></div>
+    <div class="stat-card"><p class="lbl">Eventos registrados</p><p class="val" id="rtEventos">0</p></div>
+  </div>
+  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:10px;">
+    <div class="stat-card"><p class="lbl">Asistencia total</p><p class="val" id="rtAsistencia">0</p></div>
+    <div class="stat-card"><p class="lbl">Asistencia promedio / evento</p><p class="val" id="rtAsistenciaProm">0</p></div>
+    <div class="stat-card"><p class="lbl">Miembros reportados</p><p class="val" id="rtMiembros">0</p></div>
+    <div class="stat-card"><p class="lbl">Invitados totales</p><p class="val" id="rtInvitados">0</p></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     2. FILTRO DE VISUALIZACIÓN (Región/Zona/Capítulo/Año/Mes)
+     — supervisores. Al presionar "Filtrar" los resultados
+     aparecen justo debajo, en el bloque de datos crudos.
+     ══════════════════════════════════════════════════════ -->
 <!-- PANEL FILTROS — solo para roles supervisores -->
 <div id="panelFiltros" style="display:none;" class="panel">
   <div class="filtros">
@@ -74,33 +144,80 @@
     </label>
     <button class="btn btn-filtrar" onclick="aplicarFiltros()">Filtrar</button>
   </div>
+</div>
 
-  <!-- Informe mensual — solo maestro, regional, zonal, campo -->
-  <div id="panelInformeMensual" style="display:none;">
-    <hr class="separador">
-    <strong>Informe Mensual por Capítulo:</strong>
-    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; align-items:flex-end;">
-      <label style="font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px;">Capítulo
-        <select id="informeCapitulo"><option value="">Seleccionar...</option></select>
-      </label>
-      <label style="font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px;">Mes
-        <select id="informeMes">
-          <option value="0">Enero</option><option value="1">Febrero</option>
-          <option value="2">Marzo</option><option value="3">Abril</option>
-          <option value="4">Mayo</option><option value="5">Junio</option>
-          <option value="6">Julio</option><option value="7">Agosto</option>
-          <option value="8">Septiembre</option><option value="9">Octubre</option>
-          <option value="10">Noviembre</option><option value="11">Diciembre</option>
-        </select>
-      </label>
-      <label style="font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px;">Año
-        <select id="informeAnio"></select>
-      </label>
-      <button class="btn btn-informe" onclick="generarInformeMensual()">📄 Generar Informe Mensual PDF</button>
-    </div>
+<div id="toggleDetalleTesorero" style="display:none; text-align:center; margin-bottom:16px;">
+  <button class="btn btn-filtrar" id="btnToggleDetalle" onclick="toggleDetalleTesorero()">Ver detalle completo ▾</button>
+</div>
+
+<div id="bloqueDatosCrudos">
+<div style="text-align:right; margin-bottom:8px;">
+  <button class="btn btn-filtrar" onclick="document.getElementById('bloqueDatosCrudos').style.display='none'; document.getElementById('btnToggleDetalle') && (document.getElementById('btnToggleDetalle').textContent='Ver detalle completo ▾');">Ocultar tabla ▴</button>
+</div>
+<!-- TESORERÍA -->
+<div class="seccion-titulo">T E S O R E R Í A</div>
+<div style="overflow-x:auto;">
+<table>
+  <thead><tr>
+    <th>Fecha</th><th>Capítulo</th><th>S. Inicial</th>
+    <th>Servicios</th><th>Ofrendas</th><th>Diezmos</th><th>Otros Ing.</th>
+    <th>Ing. Evento</th><th>Disponible</th>
+    <th>Diezmo Nac.</th><th>Of. Test.</th><th>Factura</th><th>Med. Becas</th><th>Otros G.</th>
+    <th>Total G.</th><th>S. Final</th>
+  </tr></thead>
+  <tbody id="cuerpoTesoreria"></tbody>
+  <tfoot id="totalTesoreria"></tfoot>
+</table>
+</div>
+
+<!-- SECRETARÍA -->
+<div class="seccion-titulo">S E C R E T A R Í A</div>
+<div style="overflow-x:auto;">
+<table>
+  <thead><tr>
+    <th>Evento No.</th><th>Fecha</th><th>Capítulo</th>
+    <th>Visitas</th><th>Miembros</th><th>Invitados</th><th>Asistencia</th>
+    <th>No. Ev. Ext.</th><th>Inv. Ext.</th>
+  </tr></thead>
+  <tbody id="cuerpoSecretaria"></tbody>
+  <tfoot id="totalSecretaria"></tfoot>
+</table>
+</div>
+</div>
+
+<!-- DESCARGA PARA SUPERVISORES (configuración original, intacta) -->
+<div class="btns-descarga" id="btnsSupervisor" style="display:none;">
+  <button class="btn btn-pdf"   onclick="descargarPDF()">⬇ Descargar PDF</button>
+  <button class="btn btn-excel" onclick="descargarExcel()">⬇ Descargar Excel</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     3. INFORME MENSUAL POR CAPÍTULO — supervisores
+     ══════════════════════════════════════════════════════ -->
+<div id="panelInformeMensual" class="panel" style="display:none;">
+  <strong>Informe Mensual por Capítulo:</strong>
+  <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; align-items:flex-end;">
+    <label style="font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px;">Capítulo
+      <select id="informeCapitulo"><option value="">Seleccionar...</option></select>
+    </label>
+    <label style="font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px;">Mes
+      <select id="informeMes">
+        <option value="0">Enero</option><option value="1">Febrero</option>
+        <option value="2">Marzo</option><option value="3">Abril</option>
+        <option value="4">Mayo</option><option value="5">Junio</option>
+        <option value="6">Julio</option><option value="7">Agosto</option>
+        <option value="8">Septiembre</option><option value="9">Octubre</option>
+        <option value="10">Noviembre</option><option value="11">Diciembre</option>
+      </select>
+    </label>
+    <label style="font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px;">Año
+      <select id="informeAnio"></select>
+    </label>
+    <button class="btn btn-informe" onclick="generarInformeMensual()">📄 Generar Informe Mensual PDF</button>
   </div>
 </div>
-<!-- PANEL FILTRO DE VISUALIZACIÓN -->
+
+<!-- PANEL FILTRO DE VISUALIZACIÓN — tesorero -->
 <div id="panelVisualizacion" class="panel" style="display:none;">
   <strong>Filtro de Visualización</strong>
   <div style="font-size:12px; color:#666; margin:4px 0 10px;">Previsualiza los datos antes de descargar.</div>
@@ -148,7 +265,35 @@
     </div>
   </div>
 </div>
-<!-- PANEL CONSOLIDADO MENSUAL (solo supervisores) -->
+
+<!-- FILTRO MES / AÑO PARA TESORERO -->
+<div id="panelFiltroTesorero" class="panel" style="display:none;">
+  <div class="filtros">
+    <label>Mes
+      <select id="tesMes">
+        <option value="">Todos</option>
+        <option value="0">Enero</option><option value="1">Febrero</option>
+        <option value="2">Marzo</option><option value="3">Abril</option>
+        <option value="4">Mayo</option><option value="5">Junio</option>
+        <option value="6">Julio</option><option value="7">Agosto</option>
+        <option value="8">Septiembre</option><option value="9">Octubre</option>
+        <option value="10">Noviembre</option><option value="11">Diciembre</option>
+      </select>
+    </label>
+    <label>Año
+      <select id="tesAnio"><option value="">Todos</option></select>
+    </label>
+  </div>
+</div>
+<!-- DESCARGA PARA TESORERO (formato oficial nuevo) -->
+<div class="btns-descarga" id="btnsTesorero" style="display:none;">
+  <button class="btn btn-pdf"   onclick="descargarInformePDF()">⬇ Exportar a PDF (listo para imprimir)</button>
+  <button class="btn btn-excel" onclick="descargarInformeExcel()">⬇ Descargar en Excel (mismo formato)</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     4. CONSOLIDADO MENSUAL — supervisores. Va al final.
+     ══════════════════════════════════════════════════════ -->
 <div id="panelConsolidado" class="panel" style="display:none;">
   <strong>Consolidado Mensual</strong>
   <div style="font-size:12px; color:#666; margin:4px 0 10px;">Descarga el resumen de todos los capítulos de tu alcance, o filtra por un campo.</div>
@@ -184,140 +329,6 @@
     <button class="btn btn-pdf"   onclick="consolidadoSecretariaPDF()">⬇ PDF</button>
     <button class="btn btn-excel" onclick="consolidadoSecretariaExcel()">⬇ Excel</button>
   </div>
-</div>
-
-<!-- DESCARGA PARA SUPERVISORES (configuración original, intacta) -->
-<div class="btns-descarga" id="btnsSupervisor" style="display:none;">
-  <button class="btn btn-pdf"   onclick="descargarPDF()">⬇ Descargar PDF</button>
-  <button class="btn btn-excel" onclick="descargarExcel()">⬇ Descargar Excel</button>
-</div>
-<!-- FILTRO MES / AÑO PARA TESORERO -->
-<div id="panelFiltroTesorero" class="panel" style="display:none;">
-  <div class="filtros">
-    <label>Mes
-      <select id="tesMes">
-        <option value="">Todos</option>
-        <option value="0">Enero</option><option value="1">Febrero</option>
-        <option value="2">Marzo</option><option value="3">Abril</option>
-        <option value="4">Mayo</option><option value="5">Junio</option>
-        <option value="6">Julio</option><option value="7">Agosto</option>
-        <option value="8">Septiembre</option><option value="9">Octubre</option>
-        <option value="10">Noviembre</option><option value="11">Diciembre</option>
-      </select>
-    </label>
-    <label>Año
-      <select id="tesAnio"><option value="">Todos</option></select>
-    </label>
-  </div>
-</div>
-<!-- DESCARGA PARA TESORERO (formato oficial nuevo) -->
-<div class="btns-descarga" id="btnsTesorero" style="display:none;">
-  <button class="btn btn-pdf"   onclick="descargarInformePDF()">⬇ Exportar a PDF (listo para imprimir)</button>
-  <button class="btn btn-excel" onclick="descargarInformeExcel()">⬇ Descargar en Excel (mismo formato)</button>
-</div>
-
-<div id="mensajeCargando">Cargando datos...</div>
-
-<!-- ══════════════════════════════════════════════════════
-     PANEL DE AVANCE — reemplaza la lista cruda para roles
-     supervisores (maestro, regional, zonal, campo)
-     ══════════════════════════════════════════════════════ -->
-<div id="panelAvanceSupervisor" class="panel" style="display:none;">
-  <strong>Panel de Avance — Reporte Mensual por Capítulo</strong>
-  <div style="font-size:12px; color:#666; margin:4px 0 12px;">Estado de ingreso de datos de todos los capítulos de tu alcance. Usa los filtros para acotar por región, zona o campo.</div>
-
-  <div class="filtros" style="margin-bottom:14px;">
-    <label id="wrapAvRegion" style="display:none;">Región
-      <select id="avRegion" onchange="avanceFiltrarZonas()"><option value="">Todas</option></select>
-    </label>
-    <label id="wrapAvZona" style="display:none;">Zona
-      <select id="avZona" onchange="avanceFiltrarCampos()"><option value="">Todas</option></select>
-    </label>
-    <label>Campo
-      <select id="avCampo" onchange="renderPanelAvance()"><option value="">Todo mi alcance</option></select>
-    </label>
-    <label>Mes
-      <select id="avMes" onchange="renderPanelAvance()">
-        <option value="0">Enero</option><option value="1">Febrero</option>
-        <option value="2">Marzo</option><option value="3">Abril</option>
-        <option value="4">Mayo</option><option value="5">Junio</option>
-        <option value="6">Julio</option><option value="7">Agosto</option>
-        <option value="8">Septiembre</option><option value="9">Octubre</option>
-        <option value="10">Noviembre</option><option value="11">Diciembre</option>
-      </select>
-    </label>
-    <label>Año <select id="avAnio" onchange="renderPanelAvance()"></select></label>
-  </div>
-
-  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:6px;">
-    <div class="stat-card"><p class="lbl">Capítulos en alcance</p><p class="val" id="avStatTotal">0</p></div>
-    <div class="stat-card"><p class="lbl">Reporte completo</p><p class="val" id="avStatCompleto" style="color:#2e5c1a;">0</p></div>
-    <div class="stat-card"><p class="lbl">Reporte parcial</p><p class="val" id="avStatParcial" style="color:#8a6d00;">0</p></div>
-    <div class="stat-card"><p class="lbl">Pendientes</p><p class="val" id="avStatPendiente" style="color:#a3311d;">0</p></div>
-    <div class="stat-card"><p class="lbl">% Avance</p><p class="val" id="avStatPct">0%</p></div>
-  </div>
-  <div class="progreso-barra"><div id="avBarra" style="width:0%;"></div></div>
-
-  <div id="avGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:10px;"></div>
-</div>
-
-<!-- ══════════════════════════════════════════════════════
-     RESUMEN GENERAL — para el tesorero, en vez de la lista
-     ══════════════════════════════════════════════════════ -->
-<div id="panelResumenTesorero" class="panel" style="display:none;">
-  <strong>Resumen General de mi Capítulo</strong>
-  <div style="font-size:12px; color:#666; margin:4px 0 12px;">Vista general de finanzas y asistencia con todos tus datos ingresados. El detalle línea por línea sigue disponible abajo.</div>
-  <div style="display:flex; gap:12px; flex-wrap:wrap;">
-    <div class="stat-card"><p class="lbl">Saldo actual</p><p class="val" id="rtSaldoActual">C$ 0.00</p></div>
-    <div class="stat-card"><p class="lbl">Ingresos totales</p><p class="val" id="rtIngresos">C$ 0.00</p></div>
-    <div class="stat-card"><p class="lbl">Egresos totales</p><p class="val" id="rtEgresos">C$ 0.00</p></div>
-    <div class="stat-card"><p class="lbl">Eventos registrados</p><p class="val" id="rtEventos">0</p></div>
-  </div>
-  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:10px;">
-    <div class="stat-card"><p class="lbl">Asistencia total</p><p class="val" id="rtAsistencia">0</p></div>
-    <div class="stat-card"><p class="lbl">Asistencia promedio / evento</p><p class="val" id="rtAsistenciaProm">0</p></div>
-    <div class="stat-card"><p class="lbl">Miembros reportados</p><p class="val" id="rtMiembros">0</p></div>
-    <div class="stat-card"><p class="lbl">Invitados totales</p><p class="val" id="rtInvitados">0</p></div>
-  </div>
-</div>
-
-<div id="toggleDetalleTesorero" style="display:none; text-align:center; margin-bottom:16px;">
-  <button class="btn btn-filtrar" id="btnToggleDetalle" onclick="toggleDetalleTesorero()">Ver detalle completo ▾</button>
-</div>
-
-<div id="bloqueDatosCrudos">
-<div style="text-align:right; margin-bottom:8px;">
-  <button class="btn btn-filtrar" onclick="document.getElementById('bloqueDatosCrudos').style.display='none'; document.getElementById('btnToggleDetalle') && (document.getElementById('btnToggleDetalle').textContent='Ver detalle completo ▾');">Ocultar tabla ▴</button>
-</div>
-<!-- TESORERÍA -->
-<div class="seccion-titulo">T E S O R E R Í A</div>
-<div style="overflow-x:auto;">
-<table>
-  <thead><tr>
-    <th>Fecha</th><th>Capítulo</th><th>S. Inicial</th>
-    <th>Servicios</th><th>Ofrendas</th><th>Diezmos</th><th>Otros Ing.</th>
-    <th>Ing. Evento</th><th>Disponible</th>
-    <th>Diezmo Nac.</th><th>Of. Test.</th><th>Factura</th><th>Med. Becas</th><th>Otros G.</th>
-    <th>Total G.</th><th>S. Final</th>
-  </tr></thead>
-  <tbody id="cuerpoTesoreria"></tbody>
-  <tfoot id="totalTesoreria"></tfoot>
-</table>
-</div>
-
-<!-- SECRETARÍA -->
-<div class="seccion-titulo">S E C R E T A R Í A</div>
-<div style="overflow-x:auto;">
-<table>
-  <thead><tr>
-    <th>Evento No.</th><th>Fecha</th><th>Capítulo</th>
-    <th>Visitas</th><th>Miembros</th><th>Invitados</th><th>Asistencia</th>
-    <th>No. Ev. Ext.</th><th>Inv. Ext.</th>
-  </tr></thead>
-  <tbody id="cuerpoSecretaria"></tbody>
-  <tfoot id="totalSecretaria"></tfoot>
-</table>
-</div>
 </div>
 
 <!-- Firebase -->
