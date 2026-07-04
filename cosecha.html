@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; padding: 16px; max-width: 1200px; margin: auto; background:#f0f0f0; color:#222; }
+  h2 { text-align:center; color:#222; margin:0; }
+  .cabecera { display:flex; flex-direction:column; align-items:center; gap:8px; margin-bottom:20px; }
+  .cabecera img { height:64px; }
+  .cabecera .sub { font-size:13px; color:#666; text-align:center; max-width:520px; }
+  .panel { background:#fff; border-radius:10px; padding:16px; margin-bottom:16px; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+  .filtros { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
+  .filtros label { font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px; }
+  .filtros select { padding:7px 10px; border-radius:6px; border:1px solid #ccc; font-size:14px; background:#fff; color:#222; width:auto; }
+  .btn { padding:8px 18px; border:none; border-radius:6px; cursor:pointer; font-size:14px; font-weight:bold; width:auto; }
+  .btn-filtrar { background:#2c2c2c; color:#fff; }
+  #mensajeCargando { text-align:center; padding:30px; font-size:16px; color:#666; }
+  .stat-card { background:#f7f7f7; border-radius:8px; padding:14px 16px; flex:1; min-width:150px; }
+  .stat-card .lbl { font-size:12px; color:#666; margin:0 0 4px; }
+  .stat-card .val { font-size:26px; font-weight:bold; margin:0; color:#222; }
+  .stat-card .delta { font-size:12px; margin:4px 0 0; }
+  .delta-pos { color:#2e5c1a; }
+  .delta-neg { color:#a3311d; }
+  .ranking-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .ranking-row .nom { font-size:13px; width:170px; flex-shrink:0; }
+  .ranking-row .barra { flex:1; background:#eee; border-radius:4px; height:12px; overflow:hidden; }
+  .ranking-row .barra > div { height:100%; background:#c8a400; border-radius:4px; }
+  .ranking-row .num { font-size:13px; font-weight:bold; width:28px; text-align:right; }
+  .seccion-titulo { background:#2c2c2c; color:#fff; padding:10px 16px; border-radius:6px; margin:20px 0 10px; font-size:15px; letter-spacing:2px; }
+</style>
+</head>
+<body>
+
+<div class="cabecera">
+  <img src="logo.png" alt="Logo FIHNEC">
+  <h2>COSECHA</h2>
+  <div class="sub">Impacto de asistencia e invitados — la evidencia de que el mensaje de Salvación, Redención y Vida Nueva en Cristo está llegando a su destino.</div>
+</div>
+
+<div id="mensajeCargando">Cargando datos...</div>
+
+<!-- FILTROS — solo supervisores -->
+<div id="panelFiltrosCosecha" class="panel" style="display:none;">
+  <div class="filtros">
+    <label id="wrapCoRegion" style="display:none;">Región
+      <select id="coRegion" onchange="coFiltrarZonas()"><option value="">Todas</option></select>
+    </label>
+    <label id="wrapCoZona" style="display:none;">Zona
+      <select id="coZona" onchange="coFiltrarCampos()"><option value="">Todas</option></select>
+    </label>
+    <label>Campo
+      <select id="coCampo" onchange="renderCosecha()"><option value="">Todo mi alcance</option></select>
+    </label>
+    <label>Año
+      <select id="coAnio" onchange="renderCosecha()"></select>
+    </label>
+  </div>
+</div>
+
+<!-- TARJETAS RESUMEN -->
+<div class="panel" id="panelStatsCosecha" style="display:none;">
+  <div style="display:flex; gap:12px; flex-wrap:wrap;">
+    <div class="stat-card">
+      <p class="lbl">Invitados este mes</p>
+      <p class="val" id="coInvitadosMes">0</p>
+      <p class="delta" id="coDelta"></p>
+    </div>
+    <div class="stat-card">
+      <p class="lbl">Invitados acumulados (año)</p>
+      <p class="val" id="coInvitadosAnio">0</p>
+    </div>
+    <div class="stat-card">
+      <p class="lbl">Asistencia total (año)</p>
+      <p class="val" id="coAsistenciaAnio">0</p>
+    </div>
+    <div class="stat-card" id="coCardCaps" style="display:none;">
+      <p class="lbl">Capítulos con invitados este mes</p>
+      <p class="val" id="coCapsConInv">0</p>
+    </div>
+  </div>
+</div>
+
+<!-- TENDENCIA MENSUAL -->
+<div class="panel" id="panelChartCosecha" style="display:none;">
+  <strong>Invitados por mes</strong>
+  <div style="position:relative; width:100%; height:260px; margin-top:12px;">
+    <canvas id="chartCosecha" role="img" aria-label="Gráfico de barras de invitados por mes durante el año seleccionado">Invitados por mes del año seleccionado.</canvas>
+  </div>
+</div>
+
+<!-- RANKING DE CAPÍTULOS — solo supervisores -->
+<div class="panel" id="panelRankingCosecha" style="display:none;">
+  <strong>Capítulos que más invitados trajeron este mes</strong>
+  <div id="coRanking" style="margin-top:14px;"></div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyB1SeqgsMF6qFSEm8M4rlF9QeBP2F2HP4Q",
+  authDomain: "sistema2026-fihnec.firebaseapp.com",
+  projectId: "sistema2026-fihnec"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+let rolUsuario    = "";
+let codigoUsuario = "";
+let usuarioCampo  = "";
+let usuarioZona   = "";
+let usuarioRegion = "";
+let sedesMap = {};
+let datosSecretaria = [];
+let chartInstance = null;
+
+const ROLES_SUPERVISOR = ["maestro", "regional", "zonal", "campo"];
+
+auth.onAuthStateChanged(async (user) => {
+  if (!user) { window.location.href = "login.html"; return; }
+
+  try {
+    const docUser = await db.collection("usuarios").doc(user.uid).get();
+    const data = docUser.data();
+    rolUsuario    = data.rol    || "tesorero";
+    codigoUsuario = data.codigoCapitulo || "";
+    usuarioCampo  = data.campo  || "";
+    usuarioZona   = data.zona   || "";
+    usuarioRegion = data.region || "";
+
+    const snapSedes = await db.collection("sedes").get();
+    snapSedes.forEach(doc => { sedesMap[doc.id] = doc.data(); });
+
+    const esSupervisor = ROLES_SUPERVISOR.includes(rolUsuario);
+
+    if (esSupervisor) {
+      const snapSec = await db.collection("secretaria").get();
+      const capsPermitidos = capitulosEnAlcance();
+      datosSecretaria = snapSec.docs.map(d => ({ id:d.id, ...d.data() }))
+        .filter(d => capsPermitidos.includes(d.codigoCapitulo));
+
+      document.getElementById("panelFiltrosCosecha").style.display = "block";
+      document.getElementById("coCardCaps").style.display = "block";
+      document.getElementById("panelRankingCosecha").style.display = "block";
+
+      const wrapRegion = document.getElementById("wrapCoRegion");
+      const wrapZona   = document.getElementById("wrapCoZona");
+      if (rolUsuario === "maestro") {
+        wrapRegion.style.display = "flex";
+        wrapZona.style.display   = "flex";
+        const regiones = [...new Set(capsPermitidos.map(c => (sedesMap[c]||{}).region).filter(Boolean))].sort();
+        const selR = document.getElementById("coRegion");
+        regiones.forEach(r => selR.innerHTML += `<option value="${r}">${r}</option>`);
+      } else if (rolUsuario === "regional") {
+        wrapZona.style.display = "flex";
+      }
+      coFiltrarZonas();
+
+    } else {
+      if (!codigoUsuario) {
+        datosSecretaria = [];
+      } else {
+        const snapSec = await db.collection("secretaria").where("codigoCapitulo","==",codigoUsuario).get();
+        datosSecretaria = snapSec.docs.map(d => ({ id:d.id, ...d.data() }));
+      }
+    }
+
+    poblarAnios();
+    document.getElementById("panelStatsCosecha").style.display = "flex";
+    document.getElementById("panelStatsCosecha").style.display = "block";
+    document.getElementById("panelChartCosecha").style.display = "block";
+    renderCosecha();
+
+    document.getElementById("mensajeCargando").style.display = "none";
+
+  } catch (err) {
+    console.error("Error al cargar datos de Cosecha:", err);
+    document.getElementById("mensajeCargando").textContent = "Error al cargar datos. Verifica tu conexión.";
+  }
+});
+
+function fechaDe(d){ return d.fecha ? new Date(d.fecha) : null; }
+
+function capitulosEnAlcance(){
+  return Object.keys(sedesMap).filter(cap=>{
+    const s = sedesMap[cap] || {};
+    if (rolUsuario === "maestro")  return true;
+    if (rolUsuario === "regional") return s.region === usuarioRegion;
+    if (rolUsuario === "zonal") {
+      if (s.zona !== usuarioZona) return false;
+      if (usuarioRegion && s.region !== usuarioRegion) return false;
+      return true;
+    }
+    if (rolUsuario === "campo") {
+      if (s.campo !== usuarioCampo) return false;
+      if (usuarioZona   && s.zona   !== usuarioZona)   return false;
+      if (usuarioRegion && s.region !== usuarioRegion) return false;
+      return true;
+    }
+    return false;
+  });
+}
+
+function coCapsBase(){
+  let caps = capitulosEnAlcance();
+  const region = document.getElementById("coRegion") ? document.getElementById("coRegion").value : "";
+  if (region) caps = caps.filter(c => (sedesMap[c]||{}).region === region);
+  return caps;
+}
+
+function coFiltrarZonas(){
+  const selZona = document.getElementById("coZona");
+  const zonas = [...new Set(coCapsBase().map(c => (sedesMap[c]||{}).zona).filter(Boolean))].sort();
+  selZona.innerHTML = '<option value="">Todas</option>';
+  zonas.forEach(z => selZona.innerHTML += `<option value="${z}">${z}</option>`);
+  coFiltrarCampos();
+}
+
+function coFiltrarCampos(){
+  const selCampo = document.getElementById("coCampo");
+  const zona = document.getElementById("coZona").value;
+  let caps = coCapsBase();
+  if (zona) caps = caps.filter(c => (sedesMap[c]||{}).zona === zona);
+  const campos = [...new Set(caps.map(c => (sedesMap[c]||{}).campo).filter(Boolean))].sort();
+  selCampo.innerHTML = '<option value="">Todo mi alcance</option>';
+  campos.forEach(c => selCampo.innerHTML += `<option value="${c}">${c}</option>`);
+  renderCosecha();
+}
+
+function coCapitulosFiltrados(){
+  let caps = capitulosEnAlcance();
+  const region = document.getElementById("coRegion") ? document.getElementById("coRegion").value : "";
+  const zona   = document.getElementById("coZona")   ? document.getElementById("coZona").value   : "";
+  const campo  = document.getElementById("coCampo")  ? document.getElementById("coCampo").value  : "";
+  if (region) caps = caps.filter(c => (sedesMap[c]||{}).region === region);
+  if (zona)   caps = caps.filter(c => (sedesMap[c]||{}).zona   === zona);
+  if (campo)  caps = caps.filter(c => (sedesMap[c]||{}).campo  === campo);
+  return caps;
+}
+
+function poblarAnios(){
+  const anios = [...new Set(datosSecretaria.map(d => {
+    const f = fechaDe(d); return f ? f.getFullYear() : NaN;
+  }))].filter(a => !isNaN(a)).sort();
+  const selA = document.getElementById("coAnio");
+  if (anios.length === 0) anios.push(new Date().getFullYear());
+  selA.innerHTML = "";
+  anios.forEach(a => selA.innerHTML += `<option value="${a}" ${a==new Date().getFullYear()?"selected":""}>${a}</option>`);
+  if (!anios.includes(new Date().getFullYear())) {
+    selA.innerHTML += `<option value="${new Date().getFullYear()}" selected>${new Date().getFullYear()}</option>`;
+  }
+}
+
+const MESES_CORTO = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+function renderCosecha(){
+  const esSupervisor = ROLES_SUPERVISOR.includes(rolUsuario);
+  const anio = parseInt(document.getElementById("coAnio").value) || new Date().getFullYear();
+  const capsScope = esSupervisor ? coCapitulosFiltrados() : (codigoUsuario ? [codigoUsuario] : []);
+
+  const datosScope = datosSecretaria.filter(d => capsScope.includes(d.codigoCapitulo));
+  const datosAnio = datosScope.filter(d => { const f = fechaDe(d); return f && f.getFullYear() === anio; });
+
+  const hoy = new Date();
+  const mesActual = hoy.getMonth(), anioActual = hoy.getFullYear();
+
+  const invitadosMesActual = datosSecretaria
+    .filter(d => capsScope.includes(d.codigoCapitulo))
+    .filter(d => { const f = fechaDe(d); return f && f.getFullYear()===anioActual && f.getMonth()===mesActual; })
+    .reduce((s,d)=>s+(parseFloat(d.invitados)||0),0);
+
+  const mesAnteriorDate = new Date(anioActual, mesActual-1, 1);
+  const invitadosMesAnterior = datosSecretaria
+    .filter(d => capsScope.includes(d.codigoCapitulo))
+    .filter(d => { const f = fechaDe(d); return f && f.getFullYear()===mesAnteriorDate.getFullYear() && f.getMonth()===mesAnteriorDate.getMonth(); })
+    .reduce((s,d)=>s+(parseFloat(d.invitados)||0),0);
+
+  const invitadosAnio = datosAnio.reduce((s,d)=>s+(parseFloat(d.invitados)||0),0);
+  const asistenciaAnio = datosAnio.reduce((s,d)=>s+(parseFloat(d.asistencia)||0),0);
+
+  document.getElementById("coInvitadosMes").textContent = invitadosMesActual;
+  document.getElementById("coInvitadosAnio").textContent = invitadosAnio;
+  document.getElementById("coAsistenciaAnio").textContent = asistenciaAnio;
+
+  const deltaEl = document.getElementById("coDelta");
+  if (invitadosMesAnterior > 0) {
+    const delta = Math.round(((invitadosMesActual - invitadosMesAnterior) / invitadosMesAnterior) * 100);
+    deltaEl.textContent = (delta>=0?"+":"") + delta + "% vs mes anterior";
+    deltaEl.className = "delta " + (delta>=0 ? "delta-pos" : "delta-neg");
+  } else if (invitadosMesActual > 0) {
+    deltaEl.textContent = "Sin datos del mes anterior para comparar";
+    deltaEl.className = "delta";
+  } else {
+    deltaEl.textContent = "";
+  }
+
+  if (esSupervisor) {
+    const capsConInv = new Set(
+      datosSecretaria
+        .filter(d => capsScope.includes(d.codigoCapitulo))
+        .filter(d => { const f = fechaDe(d); return f && f.getFullYear()===anioActual && f.getMonth()===mesActual && (parseFloat(d.invitados)||0) > 0; })
+        .map(d => d.codigoCapitulo)
+    ).size;
+    document.getElementById("coCapsConInv").textContent = capsConInv + " / " + capsScope.length;
+  }
+
+  const porMes = new Array(12).fill(0);
+  datosAnio.forEach(d => {
+    const f = fechaDe(d);
+    if (f) porMes[f.getMonth()] += (parseFloat(d.invitados)||0);
+  });
+
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(document.getElementById("chartCosecha"), {
+    type: "bar",
+    data: {
+      labels: MESES_CORTO,
+      datasets: [{ label: "Invitados", data: porMes, backgroundColor: "#c8a400", borderRadius: 4, maxBarThickness: 32 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display:false } },
+      scales: {
+        y: { beginAtZero:true, ticks:{ precision:0 } },
+        x: { grid:{ display:false } }
+      }
+    }
+  });
+
+  if (esSupervisor) {
+    const porCapitulo = capsScope.map(cap => {
+      const inv = datosSecretaria
+        .filter(d => d.codigoCapitulo === cap)
+        .filter(d => { const f = fechaDe(d); return f && f.getFullYear()===anioActual && f.getMonth()===mesActual; })
+        .reduce((s,d)=>s+(parseFloat(d.invitados)||0),0);
+      return { cap, nombre: (sedesMap[cap]||{}).nombre || cap, invitados: inv };
+    }).sort((a,b)=> b.invitados - a.invitados).slice(0,8);
+
+    const maxInv = Math.max(...porCapitulo.map(c=>c.invitados), 1);
+    const cont = document.getElementById("coRanking");
+    cont.innerHTML = "";
+    if (porCapitulo.every(c=>c.invitados===0)) {
+      cont.innerHTML = '<p style="color:#888; font-size:13px;">Ningún capítulo de tu alcance ha registrado invitados este mes todavía.</p>';
+    } else {
+      porCapitulo.forEach(c => {
+        const pct = Math.round((c.invitados/maxInv)*100);
+        const row = document.createElement("div");
+        row.className = "ranking-row";
+        row.innerHTML = `
+          <span class="nom">${c.nombre}</span>
+          <div class="barra"><div style="width:${pct}%;"></div></div>
+          <span class="num">${c.invitados}</span>
+        `;
+        cont.appendChild(row);
+      });
+    }
+  }
+}
+</script>
+</body>
+</html>
