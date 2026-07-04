@@ -1060,6 +1060,7 @@ function dibujarBloquePDF(doc, b, logo){
   const sede = sedesMap[b.cap] || {};
   const nom  = sede.nombre || b.cap;
   const muni = sede.municipio || sede.ciudad || nom;
+  const region = sede.region || "";
   const eventos = b.eventos;
   const W = 279.4, mar = 12;   // carta horizontal
 
@@ -1074,7 +1075,7 @@ function dibujarBloquePDF(doc, b, logo){
   doc.setFontSize(13);
   doc.text("INFORME MENSUAL DE TESORERÍA", W/2, 18.5, {align:"center"});
   doc.setFontSize(9.5);
-  doc.text(`Capítulo: ${nom}     Código: ${b.cap}     Ciudad y/o Municipio: ${muni}     Mes: ${MESES_NOMBRE[b.mes]}     Año: ${b.anio}`,
+  doc.text(`Capítulo: ${nom}     Código: ${b.cap}     Ciudad y/o Municipio: ${muni} (Región: ${region})     Mes: ${MESES_NOMBRE[b.mes]}     Año: ${b.anio}`,
     W/2, 25, {align:"center"});
 
   const cols = eventos.map((ev,i)=>colMapInforme(ev,i));
@@ -1177,9 +1178,8 @@ async function dibujarSecretariaPDF(doc, b, logo){
   doc.text("INFORME MENSUAL DE SECRETARÍA Y EVENTOS EXTERNOS", W/2, 19.5, {align:"center"});
 
   doc.setFontSize(9.5); doc.setFont(undefined,"normal");
-  doc.text(`Capítulo: ${nom}          Código: ${b.cap}`, mar, 28);
-  doc.text(`Ciudad y/o Municipio: ${muni}          Mes: ${MESES_NOMBRE[b.mes]}          Año: ${b.anio}`, mar, 34);
-  doc.text(`Región: ${region}`, mar, 40);
+  doc.text(`Capítulo: ${nom}     Código: ${b.cap}`, W/2, 28, {align:"center"});
+  doc.text(`Ciudad y/o Municipio: ${muni} (Región: ${region})     Mes: ${MESES_NOMBRE[b.mes]}     Año: ${b.anio}`, W/2, 34, {align:"center"});
 
   const body = eventos.map(d => [
     d.eventoNumero||"", fmtF(d.fecha),
@@ -1201,7 +1201,7 @@ async function dibujarSecretariaPDF(doc, b, logo){
        {content:"Eventos Externos", colSpan:2, styles:{halign:"center",fillColor:[210,210,210],textColor:[0,0,0],fontStyle:"bold"}}],
       ["N°","Fecha","Visitas","Miembros","Invitados por Eventos","Asistencia por Eventos","N°","Invitados"]
     ],
-    body: body, foot: [totS], startY: 44,
+    body: body, foot: [totS], startY: 40,
     styles: { fontSize: 9, halign:"center", lineColor:[120,120,120], lineWidth:0.2 },
     headStyles: { fillColor:[230,230,230], textColor:[0,0,0], fontStyle:"bold", lineColor:[120,120,120], lineWidth:0.2 },
     footStyles: { fillColor:[245,245,245], textColor:[0,0,0], fontStyle:"bold" },
@@ -1350,7 +1350,7 @@ function descargarInformeExcel(){
       const aoa = [];
       aoa.push(["FRATERNIDAD INTERNACIONAL DE HOMBRES DE NEGOCIOS DEL EVANGELIO COMPLETO"]);
       aoa.push(["INFORME MENSUAL DE TESORERÍA"]);
-      aoa.push([`Capítulo: ${nom}`, `Código: ${b.cap}`, `Ciudad y/o Municipio: ${muni}`, `Mes: ${MESES_NOMBRE[b.mes]}`, `Año: ${b.anio}`]);
+      aoa.push([`Capítulo: ${nom}`, `Código: ${b.cap}`, `Ciudad y/o Municipio: ${muni} (Región: ${region})`, `Mes: ${MESES_NOMBRE[b.mes]}`, `Año: ${b.anio}`]);
       aoa.push([]);
       aoa.push(["CONCEPTO", ...cols.map(c=>c.__head)]);
       aoa.push(["",         ...cols.map(c=>c.__fecha)]);
@@ -1383,8 +1383,7 @@ function descargarInformeExcel(){
       aoa.push(["FRATERNIDAD INTERNACIONAL DE HOMBRES DE NEGOCIOS DEL EVANGELIO COMPLETO"]);
       aoa.push(["INFORME MENSUAL DE SECRETARÍA Y EVENTOS EXTERNOS"]);
       aoa.push([`Capítulo: ${nom}`, `Código: ${b.cap}`]);
-      aoa.push([`Ciudad y/o Municipio: ${muni}`, `Mes: ${MESES_NOMBRE[b.mes]}`, `Año: ${b.anio}`]);
-      aoa.push([`Región: ${region}`]);
+      aoa.push([`Ciudad y/o Municipio: ${muni} (Región: ${region})`, `Mes: ${MESES_NOMBRE[b.mes]}`, `Año: ${b.anio}`]);
       aoa.push([]);
       aoa.push(["N°","Fecha","Visitas","Miembros","Invitados por Eventos","Asistencia por Eventos","N° (Ext.)","Invitados (Ext.)"]);
       b.sec.forEach(d=>{
