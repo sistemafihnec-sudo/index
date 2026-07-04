@@ -29,6 +29,18 @@
   .seccion-titulo { background:#2c2c2c; color:#fff; padding:10px 16px; border-radius:6px; margin:20px 0 10px; font-size:15px; letter-spacing:2px; }
   .separador { border:none; border-top:2px solid #c8a400; margin:24px 0; }
   #mensajeCargando { text-align:center; padding:30px; font-size:16px; color:#666; }
+  .stat-card { background:#f7f7f7; border-radius:8px; padding:12px 14px; flex:1; min-width:130px; }
+  .stat-card .lbl { font-size:12px; color:#666; margin:0 0 4px; }
+  .stat-card .val { font-size:20px; font-weight:bold; margin:0; color:#222; }
+  .avance-item { border-radius:8px; padding:10px 12px; }
+  .avance-item .nom { font-size:13px; font-weight:bold; margin:0 0 2px; }
+  .avance-item .sub { font-size:11px; margin:0 0 6px; opacity:0.8; }
+  .avance-item .st  { font-size:12px; margin:0; }
+  .estado-completo  { background:#e2f0d9; color:#2e5c1a; }
+  .estado-parcial   { background:#fdf3d6; color:#8a6d00; }
+  .estado-pendiente { background:#fbe3e0; color:#a3311d; }
+  .progreso-barra { background:#e6e6e6; border-radius:6px; height:10px; overflow:hidden; margin:10px 0 16px; }
+  .progreso-barra > div { height:100%; background:#27ae60; }
 </style>
 </head>
 <body>
@@ -206,6 +218,74 @@
 
 <div id="mensajeCargando">Cargando datos...</div>
 
+<!-- ══════════════════════════════════════════════════════
+     PANEL DE AVANCE — reemplaza la lista cruda para roles
+     supervisores (maestro, regional, zonal, campo)
+     ══════════════════════════════════════════════════════ -->
+<div id="panelAvanceSupervisor" class="panel" style="display:none;">
+  <strong>Panel de Avance — Reporte Mensual por Capítulo</strong>
+  <div style="font-size:12px; color:#666; margin:4px 0 12px;">Estado de ingreso de datos de todos los capítulos de tu alcance. Usa los filtros para acotar por región, zona o campo.</div>
+
+  <div class="filtros" style="margin-bottom:14px;">
+    <label id="wrapAvRegion" style="display:none;">Región
+      <select id="avRegion" onchange="avanceFiltrarZonas()"><option value="">Todas</option></select>
+    </label>
+    <label id="wrapAvZona" style="display:none;">Zona
+      <select id="avZona" onchange="avanceFiltrarCampos()"><option value="">Todas</option></select>
+    </label>
+    <label>Campo
+      <select id="avCampo" onchange="renderPanelAvance()"><option value="">Todo mi alcance</option></select>
+    </label>
+    <label>Mes
+      <select id="avMes" onchange="renderPanelAvance()">
+        <option value="0">Enero</option><option value="1">Febrero</option>
+        <option value="2">Marzo</option><option value="3">Abril</option>
+        <option value="4">Mayo</option><option value="5">Junio</option>
+        <option value="6">Julio</option><option value="7">Agosto</option>
+        <option value="8">Septiembre</option><option value="9">Octubre</option>
+        <option value="10">Noviembre</option><option value="11">Diciembre</option>
+      </select>
+    </label>
+    <label>Año <select id="avAnio" onchange="renderPanelAvance()"></select></label>
+  </div>
+
+  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:6px;">
+    <div class="stat-card"><p class="lbl">Capítulos en alcance</p><p class="val" id="avStatTotal">0</p></div>
+    <div class="stat-card"><p class="lbl">Reporte completo</p><p class="val" id="avStatCompleto" style="color:#2e5c1a;">0</p></div>
+    <div class="stat-card"><p class="lbl">Reporte parcial</p><p class="val" id="avStatParcial" style="color:#8a6d00;">0</p></div>
+    <div class="stat-card"><p class="lbl">Pendientes</p><p class="val" id="avStatPendiente" style="color:#a3311d;">0</p></div>
+    <div class="stat-card"><p class="lbl">% Avance</p><p class="val" id="avStatPct">0%</p></div>
+  </div>
+  <div class="progreso-barra"><div id="avBarra" style="width:0%;"></div></div>
+
+  <div id="avGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:10px;"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     RESUMEN GENERAL — para el tesorero, en vez de la lista
+     ══════════════════════════════════════════════════════ -->
+<div id="panelResumenTesorero" class="panel" style="display:none;">
+  <strong>Resumen General de mi Capítulo</strong>
+  <div style="font-size:12px; color:#666; margin:4px 0 12px;">Vista general de finanzas y asistencia con todos tus datos ingresados. El detalle línea por línea sigue disponible abajo.</div>
+  <div style="display:flex; gap:12px; flex-wrap:wrap;">
+    <div class="stat-card"><p class="lbl">Saldo actual</p><p class="val" id="rtSaldoActual">C$ 0.00</p></div>
+    <div class="stat-card"><p class="lbl">Ingresos totales</p><p class="val" id="rtIngresos">C$ 0.00</p></div>
+    <div class="stat-card"><p class="lbl">Egresos totales</p><p class="val" id="rtEgresos">C$ 0.00</p></div>
+    <div class="stat-card"><p class="lbl">Eventos registrados</p><p class="val" id="rtEventos">0</p></div>
+  </div>
+  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:10px;">
+    <div class="stat-card"><p class="lbl">Asistencia total</p><p class="val" id="rtAsistencia">0</p></div>
+    <div class="stat-card"><p class="lbl">Asistencia promedio / evento</p><p class="val" id="rtAsistenciaProm">0</p></div>
+    <div class="stat-card"><p class="lbl">Miembros reportados</p><p class="val" id="rtMiembros">0</p></div>
+    <div class="stat-card"><p class="lbl">Invitados totales</p><p class="val" id="rtInvitados">0</p></div>
+  </div>
+</div>
+
+<div id="toggleDetalleTesorero" style="display:none; text-align:center; margin-bottom:16px;">
+  <button class="btn btn-filtrar" id="btnToggleDetalle" onclick="toggleDetalleTesorero()">Ver detalle completo ▾</button>
+</div>
+
+<div id="bloqueDatosCrudos">
 <!-- TESORERÍA -->
 <div class="seccion-titulo">T E S O R E R Í A</div>
 <div style="overflow-x:auto;">
@@ -234,6 +314,7 @@
   <tbody id="cuerpoSecretaria"></tbody>
   <tfoot id="totalSecretaria"></tfoot>
 </table>
+</div>
 </div>
 
 <!-- Firebase -->
@@ -283,9 +364,14 @@ auth.onAuthStateChanged(async (user) => {
       document.getElementById("panelInformeMensual").style.display = "block";
       document.getElementById("btnsSupervisor").style.display = "flex";
       document.getElementById("panelConsolidado").style.display = "block";
+      document.getElementById("panelAvanceSupervisor").style.display = "block";
+      document.getElementById("bloqueDatosCrudos").style.display = "none";
     } else {
       document.getElementById("btnsTesorero").style.display = "flex";
       document.getElementById("panelFiltroTesorero").style.display = "block";
+      document.getElementById("panelResumenTesorero").style.display = "block";
+      document.getElementById("toggleDetalleTesorero").style.display = "block";
+      document.getElementById("bloqueDatosCrudos").style.display = "none";
     }
 
     if (rolUsuario === "maestro") {
@@ -318,9 +404,14 @@ auth.onAuthStateChanged(async (user) => {
   poblarFiltroTesorero();
   poblarVizSelects();
   document.getElementById("panelVisualizacion").style.display = "block";
+  renderResumenTesorero();
 }
 
-    if (esSupervisor) poblarConsolidado();
+    if (esSupervisor) {
+      poblarConsolidado();
+      poblarAvance();
+      renderPanelAvance();
+    }
 
     document.getElementById("mensajeCargando").style.display = "none";
 
@@ -557,6 +648,154 @@ function renderTablas(tData, sData) {
     <td>${totS.v}</td><td>${totS.m}</td><td>${totS.i}</td>
     <td>${totS.a}</td><td>${totS.ne}</td><td>${totS.ie}</td>
   </tr>` : "";
+}
+
+// ════════════════════════════════════════════════════
+//  PANEL DE AVANCE (supervisores)
+// ════════════════════════════════════════════════════
+
+function avanceFiltrarZonas(){
+  const selZona = document.getElementById("avZona");
+  const zonas = [...new Set(avanceCapsBase().map(c => (sedesMap[c]||{}).zona).filter(Boolean))].sort();
+  selZona.innerHTML = '<option value="">Todas</option>';
+  zonas.forEach(z => selZona.innerHTML += `<option value="${z}">${z}</option>`);
+  avanceFiltrarCampos();
+}
+
+function avanceFiltrarCampos(){
+  const selCampo = document.getElementById("avCampo");
+  const zona = document.getElementById("avZona").value;
+  let caps = avanceCapsBase();
+  if (zona) caps = caps.filter(c => (sedesMap[c]||{}).zona === zona);
+  const campos = [...new Set(caps.map(c => (sedesMap[c]||{}).campo).filter(Boolean))].sort();
+  selCampo.innerHTML = '<option value="">Todo mi alcance</option>';
+  campos.forEach(c => selCampo.innerHTML += `<option value="${c}">${c}</option>`);
+  renderPanelAvance();
+}
+
+// Capítulos del alcance del rol, acotados por la Región elegida (solo aplica a maestro)
+function avanceCapsBase(){
+  let caps = capitulosEnAlcance();
+  const region = document.getElementById("avRegion") ? document.getElementById("avRegion").value : "";
+  if (region) caps = caps.filter(c => (sedesMap[c]||{}).region === region);
+  return caps;
+}
+
+function poblarAvance(){
+  const caps = capitulosEnAlcance();
+  const wrapRegion = document.getElementById("wrapAvRegion");
+  const wrapZona   = document.getElementById("wrapAvZona");
+
+  if (rolUsuario === "maestro") {
+    wrapRegion.style.display = "flex";
+    wrapZona.style.display   = "flex";
+    const regiones = [...new Set(caps.map(c => (sedesMap[c]||{}).region).filter(Boolean))].sort();
+    const selR = document.getElementById("avRegion");
+    regiones.forEach(r => selR.innerHTML += `<option value="${r}">${r}</option>`);
+  } else if (rolUsuario === "regional") {
+    wrapRegion.style.display = "none";
+    wrapZona.style.display   = "flex";
+  } else {
+    wrapRegion.style.display = "none";
+    wrapZona.style.display   = "none";
+  }
+
+  avanceFiltrarZonas();
+
+  const anios = [...new Set([
+    ...datosTesoreria.map(d => fechaDe(d).getFullYear()),
+    ...datosSecretaria.map(d => d.fecha ? new Date(d.fecha).getFullYear() : NaN)
+  ])].filter(a => !isNaN(a)).sort();
+  const selA = document.getElementById("avAnio");
+  if (anios.length === 0) anios.push(new Date().getFullYear());
+  anios.forEach(a => selA.innerHTML += `<option value="${a}" ${a==new Date().getFullYear()?"selected":""}>${a}</option>`);
+  document.getElementById("avMes").value = new Date().getMonth();
+}
+
+function renderPanelAvance(){
+  const mes  = parseInt(document.getElementById("avMes").value);
+  const anio = parseInt(document.getElementById("avAnio").value);
+  const region = document.getElementById("avRegion") ? document.getElementById("avRegion").value : "";
+  const zona   = document.getElementById("avZona")   ? document.getElementById("avZona").value   : "";
+  const campo  = document.getElementById("avCampo")  ? document.getElementById("avCampo").value  : "";
+
+  let caps = capitulosEnAlcance();
+  if (region) caps = caps.filter(c => (sedesMap[c]||{}).region === region);
+  if (zona)   caps = caps.filter(c => (sedesMap[c]||{}).zona   === zona);
+  if (campo)  caps = caps.filter(c => (sedesMap[c]||{}).campo  === campo);
+
+  const items = caps.map(cap => {
+    const tieneTes = datosTesoreria.some(d => d.codigoCapitulo === cap && !isNaN(fechaDe(d)) && fechaDe(d).getFullYear()===anio && fechaDe(d).getMonth()===mes);
+    const tieneSec = datosSecretaria.some(d => d.codigoCapitulo === cap && d.fecha && new Date(d.fecha).getFullYear()===anio && new Date(d.fecha).getMonth()===mes);
+    let estado = "pendiente";
+    if (tieneTes && tieneSec) estado = "completo";
+    else if (tieneTes || tieneSec) estado = "parcial";
+    return { cap, nombre: (sedesMap[cap]||{}).nombre || cap, campoNombre: (sedesMap[cap]||{}).campo || "", estado };
+  }).sort((a,b)=> a.nombre.localeCompare(b.nombre));
+
+  const total = items.length;
+  const completos  = items.filter(i=>i.estado==="completo").length;
+  const parciales  = items.filter(i=>i.estado==="parcial").length;
+  const pendientes = items.filter(i=>i.estado==="pendiente").length;
+  const pct = total ? Math.round((completos/total)*100) : 0;
+
+  document.getElementById("avStatTotal").textContent = total;
+  document.getElementById("avStatCompleto").textContent = completos;
+  document.getElementById("avStatParcial").textContent = parciales;
+  document.getElementById("avStatPendiente").textContent = pendientes;
+  document.getElementById("avStatPct").textContent = pct + "%";
+  document.getElementById("avBarra").style.width = pct + "%";
+
+  const grid = document.getElementById("avGrid");
+  grid.innerHTML = "";
+  const etiqueta = { completo:"Completo", parcial:"Parcial", pendiente:"Pendiente" };
+  items.forEach(it => {
+    const div = document.createElement("div");
+    div.className = "avance-item estado-" + it.estado;
+    div.innerHTML = `
+      <p class="nom">${it.nombre}</p>
+      <p class="sub">${it.cap}${it.campoNombre ? " · "+it.campoNombre : ""}</p>
+      <p class="st">${etiqueta[it.estado]}</p>
+    `;
+    grid.appendChild(div);
+  });
+  if (total === 0) {
+    grid.innerHTML = '<p style="color:#888; font-size:13px;">No hay capítulos para este filtro.</p>';
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  RESUMEN GENERAL (tesorero)
+// ════════════════════════════════════════════════════
+
+function renderResumenTesorero(){
+  const evsOrdenados = [...datosTesoreria].sort((a,b)=>fechaDe(a)-fechaDe(b));
+  const saldoActual = evsOrdenados.length ? (parseFloat(evsOrdenados[evsOrdenados.length-1].saldoFinal)||0) : 0;
+  const ingresos = datosTesoreria.reduce((s,d)=>s+(parseFloat(d.ingresosEvento)||0),0);
+  const egresos  = datosTesoreria.reduce((s,d)=>s+(parseFloat(d.totalEgresos)||0),0);
+
+  document.getElementById("rtSaldoActual").textContent = "C$ " + fmt(saldoActual);
+  document.getElementById("rtIngresos").textContent    = "C$ " + fmt(ingresos);
+  document.getElementById("rtEgresos").textContent     = "C$ " + fmt(egresos);
+  document.getElementById("rtEventos").textContent     = datosTesoreria.length;
+
+  const asistenciaTotal = datosSecretaria.reduce((s,d)=>s+(parseFloat(d.asistencia)||0),0);
+  const asistenciaProm  = datosSecretaria.length ? Math.round(asistenciaTotal/datosSecretaria.length) : 0;
+  const miembrosUlt     = datosSecretaria.length ? (parseFloat(datosSecretaria[datosSecretaria.length-1].miembros)||0) : 0;
+  const invitadosTotal  = datosSecretaria.reduce((s,d)=>s+(parseFloat(d.invitados)||0)+(parseFloat(d.invitadosExt)||0),0);
+
+  document.getElementById("rtAsistencia").textContent     = asistenciaTotal;
+  document.getElementById("rtAsistenciaProm").textContent = asistenciaProm;
+  document.getElementById("rtMiembros").textContent       = miembrosUlt;
+  document.getElementById("rtInvitados").textContent      = invitadosTotal;
+}
+
+function toggleDetalleTesorero(){
+  const bloque = document.getElementById("bloqueDatosCrudos");
+  const btn = document.getElementById("btnToggleDetalle");
+  const oculto = bloque.style.display === "none";
+  bloque.style.display = oculto ? "block" : "none";
+  btn.textContent = oculto ? "Ocultar detalle ▴" : "Ver detalle completo ▾";
 }
 
 // ── INFORME MENSUAL PDF (supervisores) — MISMO FORMATO QUE EL TESORERO ──
