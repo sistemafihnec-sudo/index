@@ -76,7 +76,7 @@
         <option value="10">Noviembre</option><option value="11">Diciembre</option>
       </select>
     </label>
-    <label>Año <select id="avAnio" onchange="renderPanelAvance()"></select></label>
+    <label>Año <select id="avAnio"></select></label>
   </div>
 
   <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:6px;">
@@ -198,10 +198,10 @@
   <strong>Informe Mensual por Capítulo:</strong>
   <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; align-items:flex-end;">
     <label style="font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px;">Capítulo
-      <select id="informeCapitulo"><option value="">Seleccionar...</option></select>
+      <select id="informeCapitulo" onchange="verificarComprobanteInforme()"><option value="">Seleccionar...</option></select>
     </label>
     <label style="font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px;">Mes
-      <select id="informeMes">
+      <select id="informeMes" onchange="verificarComprobanteInforme()">
         <option value="0">Enero</option><option value="1">Febrero</option>
         <option value="2">Marzo</option><option value="3">Abril</option>
         <option value="4">Mayo</option><option value="5">Junio</option>
@@ -211,9 +211,12 @@
       </select>
     </label>
     <label style="font-size:13px; font-weight:bold; display:flex; flex-direction:column; gap:4px;">Año
-      <select id="informeAnio"></select>
+      <select id="informeAnio" onchange="verificarComprobanteInforme()"></select>
     </label>
     <button class="btn btn-informe" onclick="generarInformeMensual()">📄 Generar Informe Mensual PDF</button>
+  </div>
+  <div id="alertaComprobanteInforme" style="display:none; margin-top:12px; padding:10px 14px; border-radius:6px; background:#fdecea; color:#a3311d; font-size:13px; font-weight:bold;">
+    ⚠️ El comprobante de pago de este mes aún no ha sido subido por el tesorero. El informe se generará sin esa página.
   </div>
 </div>
 
@@ -270,7 +273,7 @@
 <div id="panelFiltroTesorero" class="panel" style="display:none;">
   <div class="filtros">
     <label>Mes
-      <select id="tesMes">
+      <select id="tesMes" onchange="verificarComprobanteTesorero()">
         <option value="">Todos</option>
         <option value="0">Enero</option><option value="1">Febrero</option>
         <option value="2">Marzo</option><option value="3">Abril</option>
@@ -281,8 +284,11 @@
       </select>
     </label>
     <label>Año
-      <select id="tesAnio"><option value="">Todos</option></select>
+      <select id="tesAnio" onchange="verificarComprobanteTesorero()"><option value="">Todos</option></select>
     </label>
+  </div>
+  <div id="alertaComprobanteTesorero" style="display:none; margin-top:12px; padding:10px 14px; border-radius:6px; background:#fdecea; color:#a3311d; font-size:13px; font-weight:bold;">
+    ⚠️ Todavía no has subido el comprobante de pago de este mes. Puedes hacerlo desde "Comprobantes de Pago" en el menú principal.
   </div>
 </div>
 <!-- DESCARGA PARA TESORERO (formato oficial nuevo) -->
@@ -339,7 +345,8 @@
 const firebaseConfig = {
   apiKey: "AIzaSyB1SeqgsMF6qFSEm8M4rlF9QeBP2F2HP4Q",
   authDomain: "sistema2026-fihnec.firebaseapp.com",
-  projectId: "sistema2026-fihnec"
+  projectId: "sistema2026-fihnec",
+  storageBucket: "sistema2026-fihnec.firebasestorage.app"
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
@@ -392,12 +399,14 @@ auth.onAuthStateChanged(async (user) => {
       await cargarTodos();
       poblarFiltros();
       poblarInformeSelects();
+      verificarComprobanteInforme();
 
     } else if (rolUsuario === "regional") {
       await cargarPorCampo("region", usuarioRegion);
       poblarFiltros();
       poblarInformeSelects();
       fijarSelect("filtroRegion", usuarioRegion);
+      verificarComprobanteInforme();
 
     } else if (rolUsuario === "zonal") {
       await cargarPorCampo("zona", usuarioZona);
@@ -405,6 +414,7 @@ auth.onAuthStateChanged(async (user) => {
       poblarInformeSelects();
       fijarSelect("filtroRegion", usuarioRegion);
       fijarSelect("filtroZona",   usuarioZona);
+      verificarComprobanteInforme();
 
     } else if (rolUsuario === "campo") {
       await cargarPorCampo("campo", usuarioCampo);
@@ -412,6 +422,7 @@ auth.onAuthStateChanged(async (user) => {
       poblarInformeSelects();
       fijarSelect("filtroRegion", usuarioRegion);
       fijarSelect("filtroZona",   usuarioZona);
+      verificarComprobanteInforme();
 
 } else {
   await cargarMisDatos();
@@ -419,6 +430,7 @@ auth.onAuthStateChanged(async (user) => {
   poblarVizSelects();
   document.getElementById("panelVisualizacion").style.display = "block";
   renderResumenTesorero();
+  verificarComprobanteTesorero();
 }
 
     if (esSupervisor) {
@@ -853,6 +865,15 @@ async function generarInformeMensual() {
     return;
   }
 
+  const comprobantes = await obtenerComprobantes(cap, mes, anio);
+  if (comprobantes.length === 0) {
+    const continuar = confirm(
+      "⚠️ El tesorero de este capítulo aún no ha subido el comprobante de pago de este mes.\n\n" +
+      "El informe se generará SIN esa página. ¿Deseas continuar de todos modos?"
+    );
+    if (!continuar) return;
+  }
+
   const logo = await cargarLogo();
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"letter" });
@@ -868,6 +889,8 @@ async function generarInformeMensual() {
     doc.addPage("letter","landscape");
    await dibujarSecretariaPDF(doc, b, logo);
   }
+
+  await agregarPaginasComprobantes(doc, comprobantes, b);
 
   doc.save(`informe-mensual-${cap}-${MESES_NOMBRE[mes]}-${anio}.pdf`);
 }
@@ -1018,6 +1041,131 @@ function cargarLogo(){
     img.onerror = ()=> res(null);
     img.src = LOGO_URL;
   });
+}
+
+// ════════════════════════════════════════════════════
+//  COMPROBANTES DE PAGO (subidos por el tesorero en comprobantes.html)
+//  mes aquí llega en formato JS (0=Enero) — en comprobantesPago se
+//  guarda en formato humano (1=Enero), por eso se suma 1 al consultar.
+// ════════════════════════════════════════════════════
+
+async function obtenerComprobantes(cap, mesJS, anio){
+  if (!cap) return [];
+  try {
+    const snap = await db.collection("comprobantesPago")
+      .where("codigoCapitulo", "==", cap)
+      .where("anio", "==", anio)
+      .where("mes", "==", mesJS + 1)
+      .get();
+    return snap.docs.map(d => d.data());
+  } catch (e) {
+    console.error("Error consultando comprobantes:", e);
+    return [];
+  }
+}
+
+// Carga una imagen remota (URL de Firebase Storage) y la devuelve como
+// dataURL para poder insertarla con doc.addImage(). Si falla (por ejemplo
+// si es un PDF, no una imagen) devuelve null.
+function cargarImagenRemota(url){
+  return new Promise(resolve=>{
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = ()=>{
+      try{
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        c.getContext("2d").drawImage(img,0,0);
+        resolve({ data:c.toDataURL("image/jpeg", 0.92), w:img.naturalWidth, h:img.naturalHeight });
+      }catch(e){ resolve(null); }
+    };
+    img.onerror = ()=> resolve(null);
+    img.src = url;
+  });
+}
+
+// Aviso visual para el SUPERVISOR (panel "Informe Mensual por Capítulo")
+async function verificarComprobanteInforme(){
+  const cap  = document.getElementById("informeCapitulo").value;
+  const mes  = parseInt(document.getElementById("informeMes").value);
+  const anio = parseInt(document.getElementById("informeAnio").value);
+  const alerta = document.getElementById("alertaComprobanteInforme");
+  if (!cap || isNaN(mes) || isNaN(anio)) { alerta.style.display = "none"; return; }
+
+  const comprobantes = await obtenerComprobantes(cap, mes, anio);
+  alerta.style.display = comprobantes.length === 0 ? "block" : "none";
+}
+
+// Aviso visual para el TESORERO (panel de filtro mes/año de su propia descarga)
+async function verificarComprobanteTesorero(){
+  const alerta = document.getElementById("alertaComprobanteTesorero");
+  const mesVal  = document.getElementById("tesMes").value;
+  const anioVal = document.getElementById("tesAnio").value;
+
+  // Si el filtro está en "Todos" (mes o año), no se puede verificar un
+  // periodo específico, así que se oculta el aviso.
+  if (mesVal === "" || anioVal === "" || !codigoUsuario) {
+    alerta.style.display = "none";
+    return;
+  }
+
+  const comprobantes = await obtenerComprobantes(codigoUsuario, parseInt(mesVal,10), parseInt(anioVal,10));
+  alerta.style.display = comprobantes.length === 0 ? "block" : "none";
+}
+async function agregarPaginasComprobantes(doc, comprobantes, b){
+  if (!comprobantes || !comprobantes.length) return;
+  const W = 215.9, H = 279.4, mar = 14; // carta vertical
+
+  for (const comp of comprobantes) {
+    doc.addPage("letter","portrait");
+
+    doc.setTextColor(0,0,0); doc.setFont(undefined,"bold"); doc.setFontSize(12);
+    doc.text("COMPROBANTE DE PAGO", W/2, 18, {align:"center"});
+    doc.setFontSize(9.5); doc.setFont(undefined,"normal");
+    doc.text(`Capítulo: ${b.cap}     Mes: ${MESES_NOMBRE[b.mes]}     Año: ${b.anio}`, W/2, 25, {align:"center"});
+    doc.text(`Tipo: ${comp.tipo === "diezmo" ? "Diezmo" : "Otro"}${comp.descripcion ? "  —  " + comp.descripcion : ""}`, W/2, 31, {align:"center"});
+    if (typeof comp.monto === "number") {
+      doc.text(`Monto: C$ ${comp.monto.toFixed(2)}`, W/2, 37, {align:"center"});
+    }
+
+    const esImagen = (comp.nombreArchivo || "").match(/\.(jpg|jpeg|png)$/i);
+
+    if (esImagen) {
+      const img = await cargarImagenRemota(comp.urlArchivo);
+      if (img) {
+        // Tamaño MEDIO: ni diminuto ni a página completa.
+        // Se limita a un ancho/alto máximo y se centra en el espacio
+        // disponible debajo del encabezado (que termina ~ y=40).
+        const maxW = 130, maxH = 150;
+        let w = img.w, h = img.h;
+        const escala = Math.min(maxW/w, maxH/h, 1);
+        w *= escala; h *= escala;
+
+        const yInicio = 46, yFinDisponible = H - 20;
+        const x = (W - w) / 2;
+        const y = yInicio + Math.max(0, ((yFinDisponible - yInicio) - h) / 2);
+
+        try {
+          doc.addImage(img.data, "JPEG", x, y, w, h);
+        } catch(e) {
+          doc.setFont(undefined,"italic"); doc.setFontSize(10);
+          doc.text("No se pudo incrustar la imagen. Ábrela desde el enlace:", mar, 55);
+          doc.textWithLink(comp.urlArchivo, mar, 62, { url: comp.urlArchivo });
+        }
+      } else {
+        doc.setFont(undefined,"italic"); doc.setFontSize(10);
+        doc.text("No se pudo cargar la imagen. Ábrela desde el enlace:", mar, 55);
+        doc.textWithLink(comp.urlArchivo, mar, 62, { url: comp.urlArchivo });
+      }
+    } else {
+      // Es un PDF: jsPDF no puede incrustar otro PDF, se deja el enlace.
+      doc.setFont(undefined,"normal"); doc.setFontSize(10);
+      doc.text("Este comprobante es un archivo PDF. Ábrelo desde el siguiente enlace:", mar, 55);
+      doc.setTextColor(30,80,160);
+      doc.textWithLink(comp.nombreArchivo || "Ver comprobante", mar, 63, { url: comp.urlArchivo });
+      doc.setTextColor(0,0,0);
+    }
+  }
 }
 
 // ── PORTADA (página vertical) ──
@@ -1294,6 +1442,22 @@ function poblarFiltroTesorero(){
 async function descargarInformePDF(){
   const bloques = bloquesTesoreroFiltrados();
   if(bloques.length === 0){ alert("No hay datos para exportar."); return; }
+
+  // Verifica comprobantes faltantes en los bloques a exportar
+  const bloquesSinComprobante = [];
+  for (const b of bloques) {
+    if (b.tes.length === 0 && b.sec.length === 0) continue;
+    const comp = await obtenerComprobantes(b.cap, b.mes, b.anio);
+    if (comp.length === 0) bloquesSinComprobante.push(`${MESES_NOMBRE[b.mes]} ${b.anio}`);
+  }
+  if (bloquesSinComprobante.length > 0) {
+    const continuar = confirm(
+      "⚠️ Aún no has subido el comprobante de pago de: " + bloquesSinComprobante.join(", ") + ".\n\n" +
+      "El informe se generará sin esa(s) página(s). ¿Deseas continuar de todos modos?"
+    );
+    if (!continuar) return;
+  }
+
   const logo = await cargarLogo();
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"letter" });
@@ -1315,6 +1479,9 @@ for (const b of bloques) {
       doc.addPage("letter","landscape");
       await dibujarSecretariaPDF(doc, b, logo);
     }
+
+    const comprobantes = await obtenerComprobantes(b.cap, b.mes, b.anio);
+    await agregarPaginasComprobantes(doc, comprobantes, b);
   }
 
   doc.save("informe-mensual-fihnec.pdf");
