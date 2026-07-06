@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FIHNEC — Comprobantes de Pago</title>
+
+<!-- Firebase (ajusta las versiones si tu proyecto usa otras) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+
+<style>
+  :root {
+    --azul: #1e5f8c;
+    --azul-oscuro: #143d59;
+    --verde: #2e8b57;
+    --gris-fondo: #f4f6f8;
+    --gris-borde: #dbe2e8;
+    --texto: #263238;
+    --texto-suave: #607080;
+    --blanco: #ffffff;
+    --amarillo: #e0a800;
+    --rojo: #c0392b;
+    --radio: 10px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--gris-fondo);
+    color: var(--texto);
+  }
+
+  header {
+    background: var(--azul-oscuro);
+    color: var(--blanco);
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  header h1 {
+    font-size: 1.25rem;
+    margin: 0;
+    font-weight: 600;
+  }
+
+  header .capitulo-info {
+    font-size: 0.9rem;
+    opacity: 0.85;
+  }
+
+  main {
+    max-width: 980px;
+    margin: 24px auto;
+    padding: 0 16px 60px;
+  }
+
+  .card {
+    background: var(--blanco);
+    border: 1px solid var(--gris-borde);
+    border-radius: var(--radio);
+    padding: 22px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+
+  .card h2 {
+    margin: 0 0 16px;
+    font-size: 1.05rem;
+    color: var(--azul-oscuro);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  form.subida {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    align-items: end;
+  }
+
+  .campo { display: flex; flex-direction: column; gap: 6px; }
+
+  .campo label {
+    font-size: 0.82rem;
+    color: var(--texto-suave);
+    font-weight: 600;
+  }
+
+  .campo select,
+  .campo input {
+    padding: 9px 10px;
+    border: 1px solid var(--gris-borde);
+    border-radius: 6px;
+    font-size: 0.92rem;
+    background: var(--blanco);
+  }
+
+  .campo.ancho { grid-column: 1 / -1; }
+
+  .btn {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+
+  .btn:hover { opacity: 0.88; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-primario { background: var(--azul); color: var(--blanco); }
+  .btn-secundario { background: var(--gris-fondo); color: var(--texto); border: 1px solid var(--gris-borde); }
+
+  .barra-progreso {
+    height: 6px;
+    background: var(--gris-borde);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 10px;
+    display: none;
+  }
+
+  .barra-progreso .relleno {
+    height: 100%;
+    background: var(--azul);
+    width: 0%;
+    transition: width 0.2s ease;
+  }
+
+  .mensaje {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    display: none;
+  }
+
+  .mensaje.exito { background: #e7f6ec; color: #1d6b3c; display: block; }
+  .mensaje.error { background: #fdecea; color: var(--rojo); display: block; }
+
+  .filtros {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .filtros select, .filtros input {
+    padding: 8px 10px;
+    border: 1px solid var(--gris-borde);
+    border-radius: 6px;
+    font-size: 0.88rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+
+  thead th {
+    text-align: left;
+    padding: 10px 8px;
+    border-bottom: 2px solid var(--gris-borde);
+    color: var(--texto-suave);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  tbody td {
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--gris-borde);
+    vertical-align: middle;
+  }
+
+  tbody tr:hover { background: #fafbfc; }
+
+  .etiqueta {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 0.76rem;
+    font-weight: 600;
+  }
+
+  .etiqueta.diezmo { background: #e3f0fa; color: var(--azul); }
+  .etiqueta.otro { background: #f1eefb; color: #6a4bb5; }
+
+  .estado {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 0.76rem;
+    font-weight: 600;
+  }
+
+  .estado.pendiente { background: #fff4e0; color: var(--amarillo); }
+  .estado.verificado { background: #e7f6ec; color: #1d6b3c; }
+
+  .enlace-archivo {
+    color: var(--azul);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .enlace-archivo:hover { text-decoration: underline; }
+
+  .vacio {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--texto-suave);
+  }
+
+  .btn-icono {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 4px 6px;
+    border-radius: 4px;
+  }
+  .btn-icono:hover { background: var(--gris-fondo); }
+
+  .oculto { display: none !important; }
+
+  @media (max-width: 640px) {
+    table, thead, tbody, th, td, tr { display: block; }
+    thead { display: none; }
+    tbody tr {
+      margin-bottom: 12px;
+      border: 1px solid var(--gris-borde);
+      border-radius: 8px;
+      padding: 8px;
+    }
+    tbody td {
+      border: none;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    tbody td::before {
+      content: attr(data-etiqueta);
+      font-weight: 600;
+      color: var(--texto-suave);
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📎 Comprobantes de Pago</h1>
+  <div class="capitulo-info" id="infoCapitulo">Cargando...</div>
+</header>
+
+<main>
+
+  <!-- FORMULARIO DE SUBIDA (solo tesorero) -->
+  <section class="card" id="seccionSubida">
+    <h2>⬆️ Subir nuevo comprobante</h2>
+    <form class="subida" id="formSubida">
+      <div class="campo">
+        <label for="tipoComprobante">Tipo</label>
+        <select id="tipoComprobante" required>
+          <option value="diezmo">Diezmo</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="mesComprobante">Mes</label>
+        <select id="mesComprobante" required>
+          <option value="1">Enero</option>
+          <option value="2">Febrero</option>
+          <option value="3">Marzo</option>
+          <option value="4">Abril</option>
+          <option value="5">Mayo</option>
+          <option value="6">Junio</option>
+          <option value="7">Julio</option>
+          <option value="8">Agosto</option>
+          <option value="9">Septiembre</option>
+          <option value="10">Octubre</option>
+          <option value="11">Noviembre</option>
+          <option value="12">Diciembre</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="anioComprobante">Año</label>
+        <select id="anioComprobante" required></select>
+      </div>
+
+      <div class="campo">
+        <label for="montoComprobante">Monto (C$)</label>
+        <input type="number" id="montoComprobante" min="0" step="0.01" placeholder="0.00" required />
+      </div>
+
+      <div class="campo ancho">
+        <label for="descripcionComprobante">Descripción (opcional, útil si el tipo es "Otro")</label>
+        <input type="text" id="descripcionComprobante" placeholder="Ej: Ofrenda especial misiones, aporte convención regional..." />
+      </div>
+
+      <div class="campo ancho">
+        <label for="archivoComprobante">Archivo (PDF o imagen, máx. 10 MB)</label>
+        <input type="file" id="archivoComprobante" accept=".pdf,.jpg,.jpeg,.png" required />
+      </div>
+
+      <div class="campo ancho">
+        <button type="submit" class="btn btn-primario" id="btnSubir">Subir comprobante</button>
+        <div class="barra-progreso" id="barraProgreso"><div class="relleno" id="rellenoProgreso"></div></div>
+        <div class="mensaje" id="mensajeSubida"></div>
+      </div>
+    </form>
+  </section>
+
+  <!-- HISTORIAL -->
+  <section class="card">
+    <h2>📋 Historial de comprobantes</h2>
+
+    <div class="filtros">
+      <select id="filtroAnio"></select>
+      <select id="filtroMes">
+        <option value="">Todos los meses</option>
+        <option value="1">Enero</option><option value="2">Febrero</option>
+        <option value="3">Marzo</option><option value="4">Abril</option>
+        <option value="5">Mayo</option><option value="6">Junio</option>
+        <option value="7">Julio</option><option value="8">Agosto</option>
+        <option value="9">Septiembre</option><option value="10">Octubre</option>
+        <option value="11">Noviembre</option><option value="12">Diciembre</option>
+      </select>
+      <select id="filtroTipo">
+        <option value="">Todos los tipos</option>
+        <option value="diezmo">Diezmo</option>
+        <option value="otro">Otro</option>
+      </select>
+    </div>
+
+    <div id="contenedorTabla">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha subida</th>
+            <th>Periodo</th>
+            <th>Tipo</th>
+            <th>Descripción</th>
+            <th>Monto</th>
+            <th>Archivo</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="cuerpoTabla"></tbody>
+      </table>
+      <div class="vacio oculto" id="mensajeVacio">Todavía no hay comprobantes registrados para este filtro.</div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* =======================================================
+   CONFIGURACIÓN FIREBASE
+   Sustituye por tu configuración real (la misma que usan
+   tesoreria.html / reportes.html en tu proyecto).
+======================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyB1SeqgsMF6qFSEm8M4rlF9QeBP2F2HP4Q",
+  authDomain: "sistema2026-fihnec.firebaseapp.com",
+  projectId: "sistema2026-fihnec",
+  storageBucket: "sistema2026-fihnec.firebasestorage.app"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const storage = firebase.storage();
+
+const COLECCION = "comprobantesPago";
+const TAMANO_MAX_MB = 10;
+const ANCHO_MAX_PX = 1600;       // ancho máximo tras comprimir (suficiente para leer un comprobante)
+const CALIDAD_JPEG = 0.72;       // calidad de compresión (0-1). 0.7-0.8 es buen balance legibilidad/tamaño
+
+/**
+ * Comprime una imagen (jpg/png) en el navegador antes de subirla, para
+ * reducir el costo de almacenamiento en Firebase Storage. Los PDF no se
+ * tocan (no se pueden comprimir así, y normalmente ya pesan poco).
+ * Devuelve un File nuevo (o el original si no aplica comprimir).
+ */
+async function comprimirImagenSiAplica(archivo) {
+  const esImagen = archivo.type === "image/jpeg" || archivo.type === "image/png" || archivo.type === "image/jpg";
+  if (!esImagen) return archivo; // PDF u otro tipo: se sube tal cual
+
+  const bitmap = await createImageBitmap(archivo);
+
+  let { width, height } = bitmap;
+  if (width > ANCHO_MAX_PX) {
+    height = Math.round((height * ANCHO_MAX_PX) / width);
+    width = ANCHO_MAX_PX;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(bitmap, 0, 0, width, height);
+
+  const blob = await new Promise((resolve) =>
+    canvas.toBlob(resolve, "image/jpeg", CALIDAD_JPEG)
+  );
+
+  // Si por alguna razón la "compresión" salió más pesada que el original
+  // (pasa con imágenes ya muy comprimidas), nos quedamos con el original.
+  if (!blob || blob.size >= archivo.size) return archivo;
+
+  const nombreNuevo = archivo.name.replace(/\.(png|jpg|jpeg)$/i, "") + ".jpg";
+  return new File([blob], nombreNuevo, { type: "image/jpeg" });
+}
+
+let usuarioActual = null;   // datos del doc en Usuarios
+
+/* ---------- Poblar selector de años (actual y 2 atrás) ---------- */
+function poblarAnios() {
+  const anioActual = new Date().getFullYear();
+  const selAnio = document.getElementById("anioComprobante");
+  const selFiltroAnio = document.getElementById("filtroAnio");
+  selFiltroAnio.innerHTML = `<option value="">Todos los años</option>`;
+  for (let a = anioActual; a >= anioActual - 2; a--) {
+    selAnio.insertAdjacentHTML("beforeend", `<option value="${a}">${a}</option>`);
+    selFiltroAnio.insertAdjacentHTML("beforeend", `<option value="${a}">${a}</option>`);
+  }
+}
+poblarAnios();
+
+/* ---------- Autenticación: página exclusiva para tesorero ---------- */
+auth.onAuthStateChanged(async (user) => {
+  if (!user) {
+    document.getElementById("infoCapitulo").textContent = "No has iniciado sesión.";
+    return;
+  }
+
+  const snapUsuario = await db.collection("usuarios").doc(user.uid).get();
+  if (!snapUsuario.exists) {
+    document.getElementById("infoCapitulo").textContent = "Usuario no encontrado.";
+    return;
+  }
+
+  usuarioActual = snapUsuario.data();
+  const rol = (usuarioActual.rol || "").toLowerCase();
+
+  if (rol !== "tesorero") {
+    document.querySelector("main").innerHTML = `
+      <div class="card" style="text-align:center; padding:40px;">
+        <h2 style="justify-content:center;">🔒 Acceso exclusivo del tesorero</h2>
+        <p style="color:var(--texto-suave);">Esta página es solo para que el tesorero del capítulo suba sus comprobantes de pago.</p>
+      </div>`;
+    return;
+  }
+
+  document.getElementById("infoCapitulo").textContent =
+    `${usuarioActual.nombreCapitulo || usuarioActual.codigoCapitulo || ""} — Tesorero`;
+
+  cargarHistorial();
+});
+
+/* ---------- Subida de comprobante ---------- */
+document.getElementById("formSubida").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const archivoOriginal = document.getElementById("archivoComprobante").files[0];
+  const mensaje = document.getElementById("mensajeSubida");
+  const btn = document.getElementById("btnSubir");
+  mensaje.className = "mensaje";
+  mensaje.textContent = "";
+
+  if (!archivoOriginal) return;
+
+  if (archivoOriginal.size > TAMANO_MAX_MB * 1024 * 1024) {
+    mensaje.classList.add("error");
+    mensaje.textContent = `El archivo supera ${TAMANO_MAX_MB} MB. Comprime o reduce la calidad e intenta de nuevo.`;
+    return;
+  }
+
+  const tipo = document.getElementById("tipoComprobante").value;
+  const mes = parseInt(document.getElementById("mesComprobante").value, 10);
+  const anio = parseInt(document.getElementById("anioComprobante").value, 10);
+  const monto = parseFloat(document.getElementById("montoComprobante").value);
+  const descripcion = document.getElementById("descripcionComprobante").value.trim();
+  const codigoCapitulo = usuarioActual.codigoCapitulo;
+
+  btn.disabled = true;
+  const barra = document.getElementById("barraProgreso");
+  const relleno = document.getElementById("rellenoProgreso");
+  barra.style.display = "block";
+
+  try {
+    btn.textContent = "Optimizando imagen...";
+    const archivo = await comprimirImagenSiAplica(archivoOriginal);
+
+    const marcaTiempo = Date.now();
+    const rutaArchivo = `comprobantes/${codigoCapitulo}/${anio}-${String(mes).padStart(2, "0")}/${marcaTiempo}_${archivo.name}`;
+    const ref = storage.ref(rutaArchivo);
+    btn.textContent = "Subiendo...";
+    const tarea = ref.put(archivo);
+
+    tarea.on("state_changed", (snap) => {
+      const porcentaje = (snap.bytesTransferred / snap.totalBytes) * 100;
+      relleno.style.width = `${porcentaje}%`;
+    });
+
+    await tarea;
+    const urlArchivo = await ref.getDownloadURL();
+
+    await db.collection(COLECCION).add({
+      codigoCapitulo,
+      nombreCapitulo: usuarioActual.nombreCapitulo || "",
+      tipo,
+      mes,
+      anio,
+      monto,
+      descripcion,
+      urlArchivo,
+      nombreArchivo: archivo.name,
+      rutaStorage: rutaArchivo,
+      estado: "pendiente",
+      subidoPor: auth.currentUser.uid,
+      fechaSubida: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    mensaje.classList.add("exito");
+    const kbOriginal = (archivoOriginal.size / 1024).toFixed(0);
+    const kbFinal = (archivo.size / 1024).toFixed(0);
+    if (archivo !== archivoOriginal) {
+      const reduccion = Math.max(0, Math.round((1 - archivo.size / archivoOriginal.size) * 100));
+      mensaje.textContent = `Comprobante subido correctamente. (${kbOriginal} KB → ${kbFinal} KB, ${reduccion}% más liviano)`;
+    } else {
+      mensaje.textContent = `Comprobante subido correctamente. (${kbFinal} KB)`;
+    }
+    document.getElementById("formSubida").reset();
+    poblarAnios();
+    cargarHistorial();
+  } catch (err) {
+    console.error(err);
+    mensaje.classList.add("error");
+    mensaje.textContent = "Ocurrió un error al subir el comprobante. Intenta de nuevo.";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Subir comprobante";
+    setTimeout(() => { barra.style.display = "none"; relleno.style.width = "0%"; }, 800);
+  }
+});
+
+/* ---------- Historial ---------- */
+["filtroAnio", "filtroMes", "filtroTipo"].forEach(id => {
+  document.getElementById(id).addEventListener("change", cargarHistorial);
+});
+
+async function cargarHistorial() {
+  const cuerpoTabla = document.getElementById("cuerpoTabla");
+  const mensajeVacio = document.getElementById("mensajeVacio");
+  cuerpoTabla.innerHTML = "";
+
+  const filtroAnio = document.getElementById("filtroAnio").value;
+  const filtroMes = document.getElementById("filtroMes").value;
+  const filtroTipo = document.getElementById("filtroTipo").value;
+
+  if (!usuarioActual || !usuarioActual.codigoCapitulo) {
+    mensajeVacio.classList.remove("oculto");
+    return;
+  }
+
+  let consulta = db.collection(COLECCION)
+    .where("codigoCapitulo", "==", usuarioActual.codigoCapitulo);
+
+  if (filtroAnio) consulta = consulta.where("anio", "==", parseInt(filtroAnio, 10));
+  if (filtroMes) consulta = consulta.where("mes", "==", parseInt(filtroMes, 10));
+  if (filtroTipo) consulta = consulta.where("tipo", "==", filtroTipo);
+
+  const snap = await consulta.orderBy("fechaSubida", "desc").get();
+
+  if (snap.empty) {
+    mensajeVacio.classList.remove("oculto");
+    return;
+  }
+  mensajeVacio.classList.add("oculto");
+
+  const nombresMes = ["", "Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+  snap.forEach(doc => {
+    const d = doc.data();
+    const fecha = d.fechaSubida ? d.fechaSubida.toDate().toLocaleDateString("es-NI") : "—";
+    const periodo = `${nombresMes[d.mes] || d.mes} ${d.anio}`;
+    const montoTexto = typeof d.monto === "number" ? `C$ ${d.monto.toFixed(2)}` : "—";
+
+    cuerpoTabla.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td data-etiqueta="Fecha subida">${fecha}</td>
+        <td data-etiqueta="Periodo">${periodo}</td>
+        <td data-etiqueta="Tipo"><span class="etiqueta ${d.tipo}">${d.tipo === "diezmo" ? "Diezmo" : "Otro"}</span></td>
+        <td data-etiqueta="Descripción">${d.descripcion || "—"}</td>
+        <td data-etiqueta="Monto">${montoTexto}</td>
+        <td data-etiqueta="Archivo"><a class="enlace-archivo" href="${d.urlArchivo}" target="_blank" rel="noopener">Ver archivo</a></td>
+        <td data-etiqueta="Estado">
+          <span class="estado ${d.estado}">${d.estado === "verificado" ? "Verificado" : "Pendiente"}</span>
+        </td>
+        <td><button class="btn-icono" data-eliminar="${doc.id}" data-ruta="${d.rutaStorage || ""}" title="Eliminar">🗑️</button></td>
+      </tr>
+    `);
+  });
+
+  // Botón eliminar (el tesorero solo ve y borra los comprobantes de su propio capítulo)
+  cuerpoTabla.querySelectorAll("[data-eliminar]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("¿Eliminar este comprobante? Esta acción no se puede deshacer.")) return;
+      const id = btn.getAttribute("data-eliminar");
+      const ruta = btn.getAttribute("data-ruta");
+      try {
+        if (ruta) await storage.ref(ruta).delete();
+        await db.collection(COLECCION).doc(id).delete();
+        cargarHistorial();
+      } catch (err) {
+        console.error(err);
+        alert("No se pudo eliminar el comprobante.");
+      }
+    });
+  });
+}
+</script>
+
+</body>
+</html>
