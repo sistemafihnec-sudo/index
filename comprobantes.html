@@ -356,7 +356,6 @@
             <th>Descripción</th>
             <th>Monto</th>
             <th>Archivo</th>
-            <th>Estado</th>
             <th></th>
           </tr>
         </thead>
@@ -618,9 +617,6 @@ async function cargarHistorial() {
         <td data-etiqueta="Descripción">${d.descripcion || "—"}</td>
         <td data-etiqueta="Monto">${montoTexto}</td>
         <td data-etiqueta="Archivo"><a class="enlace-archivo" href="${d.urlArchivo}" target="_blank" rel="noopener">Ver archivo</a></td>
-        <td data-etiqueta="Estado">
-          <span class="estado ${d.estado}">${d.estado === "verificado" ? "Verificado" : "Pendiente"}</span>
-        </td>
         <td><button class="btn-icono" data-eliminar="${doc.id}" data-ruta="${d.rutaStorage || ""}" title="Eliminar">🗑️</button></td>
       </tr>
     `);
