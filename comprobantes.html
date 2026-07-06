@@ -38,12 +38,23 @@
   header {
     background: var(--azul-oscuro);
     color: var(--blanco);
-    padding: 18px 24px;
+    padding: 14px 24px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 16px;
     flex-wrap: wrap;
-    gap: 10px;
+  }
+
+  header .logo-header {
+    height: 48px;
+    width: auto;
+    flex-shrink: 0;
+  }
+
+  header .header-textos {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
 
   header h1 {
@@ -260,8 +271,11 @@
 <body>
 
 <header>
-  <h1>📎 Comprobantes de Pago</h1>
-  <div class="capitulo-info" id="infoCapitulo">Cargando...</div>
+  <img src="logo.png" alt="FIHNEC" class="logo-header">
+  <div class="header-textos">
+    <h1>📎 Comprobantes de Pago</h1>
+    <div class="capitulo-info" id="infoCapitulo">Cargando...</div>
+  </div>
 </header>
 
 <main>
