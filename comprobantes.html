@@ -580,15 +580,23 @@ async function cargarHistorial() {
   }
 
   let consulta = db.collection(COLECCION)
-    .where("codigoCapitulo", "==", usuarioActual.codigoCapitulo);
+    .where("codigoCapitulo", "==", usuarioActual.codigoCapitulo)
+    .orderBy("fechaSubida", "desc");
 
-  if (filtroAnio) consulta = consulta.where("anio", "==", parseInt(filtroAnio, 10));
-  if (filtroMes) consulta = consulta.where("mes", "==", parseInt(filtroMes, 10));
-  if (filtroTipo) consulta = consulta.where("tipo", "==", filtroTipo);
+  const snap = await consulta.get();
 
-  const snap = await consulta.orderBy("fechaSubida", "desc").get();
+  // Filtros de año/mes/tipo se aplican aquí, no en la consulta a Firestore
+  // (así solo necesitamos UN índice compuesto: codigoCapitulo + fechaSubida,
+  // en vez de uno distinto por cada combinación de filtros).
+  let documentos = snap.docs.filter(doc => {
+    const d = doc.data();
+    if (filtroAnio && d.anio !== parseInt(filtroAnio, 10)) return false;
+    if (filtroMes && d.mes !== parseInt(filtroMes, 10)) return false;
+    if (filtroTipo && d.tipo !== filtroTipo) return false;
+    return true;
+  });
 
-  if (snap.empty) {
+  if (documentos.length === 0) {
     mensajeVacio.classList.remove("oculto");
     return;
   }
@@ -596,7 +604,7 @@ async function cargarHistorial() {
 
   const nombresMes = ["", "Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
-  snap.forEach(doc => {
+  documentos.forEach(doc => {
     const d = doc.data();
     const fecha = d.fechaSubida ? d.fechaSubida.toDate().toLocaleDateString("es-NI") : "—";
     const periodo = `${nombresMes[d.mes] || d.mes} ${d.anio}`;
