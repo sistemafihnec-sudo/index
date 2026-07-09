@@ -614,7 +614,7 @@ function aplicarFiltros() {
     });
     filtS = filtS.filter(d => {
       if (!d.fecha) return true;
-      const f = new Date(d.fecha);
+      const f = parseFechaLocal(d.fecha);
       if (anio && f.getFullYear() != anio) return false;
       if (mes !== "" && f.getMonth() != mes) return false;
       return true;
@@ -628,9 +628,27 @@ function aplicarFiltros() {
 
 // ── RENDER ──
 function fmt(v)  { return (parseFloat(v)||0).toFixed(2); }
+
+// Convierte cualquier valor de fecha (Firestore Timestamp o texto tipo
+// "YYYY-MM-DD") a un objeto Date interpretado en HORA LOCAL.
+// IMPORTANTE: new Date("YYYY-MM-DD") interpreta el string como medianoche
+// UTC, no medianoche local. En Nicaragua (UTC-6) eso hace que la fecha se
+// muestre UN DÍA ANTES (ej: "2026-07-05" se ve como 4 de julio). Por eso
+// las fechas de tipo texto (como las de Secretaría) se parsean a mano
+// tomando año/mes/día directamente, sin pasar por el parser UTC de Date.
+function parseFechaLocal(v) {
+  if (!v) return null;
+  if (v.toDate) return v.toDate(); // Firestore Timestamp
+  if (typeof v === "string") {
+    const m = v.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
+  }
+  return new Date(v);
+}
+
 function fmtF(v) {
-  if (!v) return "";
-  const f = v.toDate ? v.toDate() : new Date(v);
+  const f = parseFechaLocal(v);
+  if (!f || isNaN(f)) return "";
   return f.toLocaleDateString("es-NI");
 }
 
@@ -733,7 +751,7 @@ function poblarAvance(){
 
   const anios = [...new Set([
     ...datosTesoreria.map(d => fechaDe(d).getFullYear()),
-    ...datosSecretaria.map(d => d.fecha ? new Date(d.fecha).getFullYear() : NaN)
+    ...datosSecretaria.map(d => d.fecha ? parseFechaLocal(d.fecha).getFullYear() : NaN)
   ])].filter(a => !isNaN(a)).sort();
   const selA = document.getElementById("avAnio");
   if (anios.length === 0) anios.push(new Date().getFullYear());
@@ -755,7 +773,7 @@ function renderPanelAvance(){
 
   const items = caps.map(cap => {
     const tieneTes = datosTesoreria.some(d => d.codigoCapitulo === cap && !isNaN(fechaDe(d)) && fechaDe(d).getFullYear()===anio && fechaDe(d).getMonth()===mes);
-    const tieneSec = datosSecretaria.some(d => d.codigoCapitulo === cap && d.fecha && new Date(d.fecha).getFullYear()===anio && new Date(d.fecha).getMonth()===mes);
+    const tieneSec = datosSecretaria.some(d => d.codigoCapitulo === cap && d.fecha && parseFechaLocal(d.fecha).getFullYear()===anio && parseFechaLocal(d.fecha).getMonth()===mes);
     let estado = "pendiente";
     if (tieneTes && tieneSec) estado = "completo";
     else if (tieneTes || tieneSec) estado = "parcial";
@@ -845,7 +863,7 @@ function construirBloque(cap, mes, anio){
   const sec = datosSecretaria
     .filter(d => {
       if (d.codigoCapitulo !== cap || !d.fecha) return false;
-      const f = new Date(d.fecha);
+      const f = parseFechaLocal(d.fecha);
       return f.getFullYear() === anio && f.getMonth() === mes;
     })
     .sort((a,b)=>(a.eventoNumero||0)-(b.eventoNumero||0));
@@ -960,7 +978,7 @@ const FILAS_INFORME = [
   {id:"TF", label:"SALDO FINAL",      bold:true, color:[226,239,218]},
 ];
 
-function fechaDe(d){ return d.fecha?.toDate ? d.fecha.toDate() : new Date(d.fecha); }
+function fechaDe(d){ return parseFechaLocal(d.fecha); }
 function fmtFechaCorta(ev){
   const f = fechaDe(ev);
   const dd = String(f.getDate()).padStart(2,"0");
@@ -989,7 +1007,7 @@ function agruparMeses(){
   });
   datosSecretaria.forEach(d => {
     if (!d.fecha) return;
-    const f = new Date(d.fecha); if (isNaN(f)) return;
+    const f = parseFechaLocal(d.fecha); if (!f || isNaN(f)) return;
     const cap = d.codigoCapitulo || "";
     const k = keyOf(cap, f);
     (map[k] = map[k] || { cap, anio:f.getFullYear(), mes:f.getMonth(), tes:[], sec:[] }).sec.push(d);
@@ -1371,8 +1389,8 @@ async function dibujarSecretariaPDF(doc, b, logo){
       .get();
     snapEv.forEach(ev => {
       const d = ev.data();
-      const f = d.fecha ? new Date(d.fecha) : null;
-      if (!f || f.getFullYear() !== b.anio || f.getMonth() !== b.mes) return;
+      const f = parseFechaLocal(d.fecha);
+      if (!f || isNaN(f) || f.getFullYear() !== b.anio || f.getMonth() !== b.mes) return;
       const asis = (d.asistentes || []).map(a => `${a.nombres||""} ${a.apellidos||""}${a.cedula ? " ("+a.cedula+")" : ""}`.trim());
       if (d.tipo === "SAEL") listaSAEL = listaSAEL.concat(asis);
       if (d.tipo === "SAL")  listaSAL  = listaSAL.concat(asis);
@@ -1431,7 +1449,7 @@ function bloquesTesoreroFiltrados(){
 function poblarFiltroTesorero(){
   const anios = [...new Set([
     ...datosTesoreria.map(d => fechaDe(d).getFullYear()),
-    ...datosSecretaria.map(d => d.fecha ? new Date(d.fecha).getFullYear() : NaN)
+    ...datosSecretaria.map(d => d.fecha ? parseFechaLocal(d.fecha).getFullYear() : NaN)
   ])].filter(a => !isNaN(a)).sort();
   const selA = document.getElementById("tesAnio");
   if (anios.length === 0) anios.push(new Date().getFullYear());
@@ -1679,7 +1697,7 @@ function poblarConsolidado(){
   // Años disponibles
   const anios = [...new Set([
     ...datosTesoreria.map(d => fechaDe(d).getFullYear()),
-    ...datosSecretaria.map(d => d.fecha ? new Date(d.fecha).getFullYear() : NaN)
+    ...datosSecretaria.map(d => d.fecha ? parseFechaLocal(d.fecha).getFullYear() : NaN)
   ])].filter(a => !isNaN(a)).sort();
   const selA = document.getElementById("consAnio");
   if (anios.length === 0) anios.push(new Date().getFullYear());
@@ -1725,7 +1743,7 @@ function agregarSecretaria(caps, mes, anio){
   return caps.map(cap=>{
     const evs = datosSecretaria.filter(d=>{
       if (d.codigoCapitulo !== cap || !d.fecha) return false;
-      const f = new Date(d.fecha);
+      const f = parseFechaLocal(d.fecha);
       return f.getFullYear()===anio && f.getMonth()===mes;
     });
     const sum = k => evs.reduce((s,d)=>s+(parseFloat(d[k])||0),0);
@@ -2053,7 +2071,7 @@ function aplicarVizFiltro() {
     });
     filtS = filtS.filter(d => {
       if (!d.fecha) return true;
-      const f = new Date(d.fecha);
+      const f = parseFechaLocal(d.fecha);
       if (anio && f.getFullYear() != anio) return false;
       if (mes !== "" && f.getMonth() != mes) return false;
       return true;
