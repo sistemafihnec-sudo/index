@@ -184,7 +184,14 @@ auth.onAuthStateChanged(async (user) => {
   }
 });
 
-function fechaDe(d){ return d.fecha ? new Date(d.fecha) : null; }
+function fechaDe(d){
+  if (!d.fecha) return null;
+  // Parseo manual para evitar el corrimiento UTC de "new Date('YYYY-MM-DD')"
+  const partes = String(d.fecha).split("-");
+  if (partes.length !== 3) return new Date(d.fecha); // fallback por si acaso
+  const [anio, mes, dia] = partes.map(Number);
+  return new Date(anio, mes - 1, dia); // construido en hora LOCAL, no UTC
+}
 
 function capitulosEnAlcance(){
   return Object.keys(sedesMap).filter(cap=>{
