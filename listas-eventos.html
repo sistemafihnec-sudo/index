@@ -68,10 +68,35 @@
   .oculto { display: none !important; }
   .vacio { text-align:center; color:#aaa; padding:24px; }
 
-  @media (max-width: 600px) {
+@media (max-width: 600px) {
     .form-group { min-width: 100%; }
   }
+
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    align-items: center; justify-content: center; z-index: 1000; padding: 16px;
+  }
+  .modal-overlay.activo { display: flex; }
+  .modal-box {
+    background: #fff; border-radius: 10px; max-width: 560px; width: 100%;
+    max-height: 80vh; overflow-y: auto; padding: 20px;
+  }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .modal-header h3 { font-size: 15px; color: #2c2c2c; }
+  .modal-cerrar { background: none; border: none; font-size: 20px; cursor: pointer; color: #888; line-height: 1; }
+  .lista-asistentes { list-style: none; }
+  .lista-asistentes li {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 4px; border-bottom: 1px solid #eee; font-size: 13px; gap: 10px;
+  }
+  .lista-asistentes li:last-child { border-bottom: none; }
+  .btn-eliminar-asistente {
+    background: #c0392b; color: #fff; border: none; border-radius: 5px;
+    padding: 4px 10px; font-size: 12px; cursor: pointer; flex-shrink: 0;
+  }
+  .btn-eliminar-asistente:hover { opacity: 0.85; }
 </style>
+ 
 </head>
 <body>
 
@@ -134,7 +159,7 @@
               <th>Tipo</th>
               <th>Categoría</th>
               <th>N° Asistentes</th>
-              <th></th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody id="cuerpoEventos">
@@ -144,6 +169,16 @@
       </div>
     </div>
 
+</div>
+</div>
+
+<div class="modal-overlay" id="modalAsistentes">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modalTitulo">Asistentes</h3>
+      <button class="modal-cerrar" onclick="cerrarModalAsistentes()">✕</button>
+    </div>
+    <ul class="lista-asistentes" id="modalListaAsistentes"></ul>
   </div>
 </div>
 
@@ -333,7 +368,10 @@ function renderTabla(lista) {
       <td>${e.tipo||""}</td>
       <td>${cat}</td>
       <td>${n}</td>
-      <td><button class="btn btn-pdf-mini" onclick="descargarEventoPDF(${i})">⬇ PDF</button></td>
+      <td>
+        <button class="btn btn-pdf-mini" onclick="descargarEventoPDF(${i})">⬇ PDF</button>
+        <button class="btn btn-pdf-mini" style="background:#2c2c2c;color:#fff;" onclick="abrirModalAsistentes(${i})">👥 Asistentes</button>
+      </td>
     </tr>`;
   }).join("");
 }
@@ -430,8 +468,69 @@ async function descargarTodosPDF() {
     dibujarEventoEnPDF(doc, ev, logo);
   });
 
-  const etiquetaTipo = tipoActivo || "todos";
+ const etiquetaTipo = tipoActivo || "todos";
   doc.save(`listas-eventos-${etiquetaTipo}.pdf`.replace(/\s/g,"_"));
+}
+
+// ── MODAL ASISTENTES ──
+let idxEventoModal = null;
+
+function abrirModalAsistentes(idx) {
+  idxEventoModal = idx;
+  renderModalAsistentes();
+  document.getElementById("modalAsistentes").classList.add("activo");
+}
+
+function cerrarModalAsistentes() {
+  document.getElementById("modalAsistentes").classList.remove("activo");
+  idxEventoModal = null;
+}
+
+function renderModalAsistentes() {
+  const ev = eventosFiltrados[idxEventoModal];
+  if (!ev) return;
+  document.getElementById("modalTitulo").textContent =
+    `Asistentes — ${ev.fecha||""} (${ev.tipo||""})`;
+
+  const ul = document.getElementById("modalListaAsistentes");
+  const lista = ev.asistentes || [];
+
+  if (!lista.length) {
+    ul.innerHTML = `<li style="justify-content:center;color:#aaa;">Sin asistentes registrados</li>`;
+    return;
+  }
+
+  ul.innerHTML = lista.map((a, i) => `
+    <li>
+      <span>${a.nombres||""} ${a.apellidos||""} <span style="color:#999;">— ${a.tipo||""}</span></span>
+      ${esSupervisor ? "" : `<button class="btn-eliminar-asistente" onclick="eliminarAsistente(${i})">Eliminar</button>`}
+    </li>
+  `).join("");
+}
+
+async function eliminarAsistente(asistenteIdx) {
+  const ev = eventosFiltrados[idxEventoModal];
+  if (!ev) return;
+  const persona = (ev.asistentes||[])[asistenteIdx];
+  if (!persona) return;
+
+  const ok = confirm(`¿Eliminar a ${persona.nombres||""} ${persona.apellidos||""} de la lista de este evento?`);
+  if (!ok) return;
+
+  const nuevaLista = (ev.asistentes||[]).filter((_, i) => i !== asistenteIdx);
+
+  try {
+    await db.collection("asistenciaEventos").doc(ev.id).update({ asistentes: nuevaLista });
+    ev.asistentes = nuevaLista;
+    const evAll = eventosAll.find(e => e.id === ev.id);
+    if (evAll) evAll.asistentes = nuevaLista;
+
+    renderModalAsistentes();
+    renderTabla(eventosFiltrados);
+  } catch (err) {
+    console.error("Error al eliminar asistente:", err);
+    alert("No se pudo eliminar. Verifica tu conexión e intenta de nuevo.");
+  }
 }
 </script>
 </body>
